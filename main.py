@@ -13,16 +13,21 @@ import sys
 import threading
 
 import keyboard
-from PyQt6.QtCore import QObject, pyqtSignal
-from PyQt6.QtWidgets import QApplication
 
-from capture import capture_screen
-from audio_capture import SystemAudioCapture
+# FIX: Import ai_service (which imports faster-whisper -> onnxruntime) BEFORE PyQt6
+# This prevents a known silent crash (access violation) due to OpenMP/dll conflicts on Windows.
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 from ai_service import (
     analyze_screenshot,
     analyze_screenshot_with_context,
     transcribe_audio
 )
+
+from PyQt6.QtCore import QObject, pyqtSignal
+from PyQt6.QtWidgets import QApplication
+
+from capture import capture_screen
+from audio_capture import SystemAudioCapture
 from gui import AssistantWindow
 
 
@@ -36,6 +41,7 @@ class _SignalBridge(QObject):
     show_loading = pyqtSignal()
     voice_active = pyqtSignal(bool)
     voice_text = pyqtSignal(str)
+    audio_ready = pyqtSignal(str)  # Emitted when VAD detects silence
 
 
 # ------------------------------------------------------------------
@@ -45,10 +51,16 @@ class _SignalBridge(QObject):
 class _WorkflowManager:
     """Manages the audio recording and GPT-4o + Whisper pipeline."""
 
-    def __init__(self, bridge: _SignalBridge) -> None:
+    def __init__(self, bridge: _SignalBridge, get_prompt_type_cb) -> None:
         self._bridge = bridge
-        self._audio_capture = SystemAudioCapture()
+        self._get_prompt_type = get_prompt_type_cb
+        self._audio_capture = SystemAudioCapture(on_audio_ready_callback=self._on_vad_silence)
+        self._bridge.audio_ready.connect(self._process_audio_and_solve)
         self._processing = threading.Lock()
+
+    def _on_vad_silence(self, wav_path: str):
+        """Callback from VAD background thread."""
+        self._bridge.audio_ready.emit(wav_path)
 
     @property
     def is_recording(self) -> bool:
@@ -56,7 +68,12 @@ class _WorkflowManager:
 
     def toggle_recording(self) -> None:
         if self._audio_capture.is_running:
-            self._stop_and_solve()
+            # Manually stopped
+            wav_path = self._audio_capture._save_internal_buffer()
+            self._audio_capture.stop()
+            self._bridge.voice_active.emit(False)
+            if wav_path:
+                self._bridge.audio_ready.emit(wav_path)
         else:
             self._start()
 
@@ -65,11 +82,12 @@ class _WorkflowManager:
         if not self._processing.acquire(blocking=False):
             return
 
+        prompt_type = self._get_prompt_type()
         def _worker() -> None:
             try:
                 self._bridge.show_loading.emit()
                 screenshot_bytes = capture_screen()
-                answer = analyze_screenshot(screenshot_bytes)
+                answer = analyze_screenshot(screenshot_bytes, prompt_type)
                 self._bridge.result_ready.emit(answer)
             except Exception as exc:
                 self._bridge.error_occurred.emit(str(exc))
@@ -82,33 +100,29 @@ class _WorkflowManager:
         self._audio_capture.start()
         self._bridge.voice_active.emit(True)
 
-    def _stop_and_solve(self) -> None:
+    def _process_audio_and_solve(self, wav_path: str) -> None:
         if not self._processing.acquire(blocking=False):
             return
 
+        prompt_type = self._get_prompt_type()
         def _worker() -> None:
-            wav_path = None
             try:
-                self._bridge.show_loading.emit()
-                
-                # Stop recording and save loopback to WAV
+                # Ensure the UI reflects that listening stopped
                 self._audio_capture.stop()
                 self._bridge.voice_active.emit(False)
-                wav_path = self._audio_capture.save_wav()
+                
+                self._bridge.show_loading.emit()
+                
+                # 1. Capture Screen immediately
+                screenshot_bytes = capture_screen()
 
-                if wav_path:
-                    # 1. Capture Screen immediately exact state when stopped
-                    screenshot_bytes = capture_screen()
-
-                    # 2. Transcribe audio
-                    transcript = transcribe_audio(wav_path)
-                    self._bridge.voice_text.emit(f"🗣️ Rekruter: {transcript}\n\nAnalizuję kod...")
-                    
-                    # 3. GPT-4o analysis
-                    answer = analyze_screenshot_with_context(screenshot_bytes, transcript)
-                    self._bridge.result_ready.emit(f"🗣️ Rekruter: {transcript}\n\n---\n{answer}")
-                else:
-                    self._bridge.error_occurred.emit("Brak nagrania audio.")
+                # 2. Transcribe audio
+                transcript = transcribe_audio(wav_path)
+                self._bridge.voice_text.emit(f"🗣️ Rekruter: {transcript}\n\nAnalizuję kod...")
+                
+                # 3. LLM analysis
+                answer = analyze_screenshot_with_context(screenshot_bytes, transcript, prompt_type)
+                self._bridge.result_ready.emit(f"🗣️ Transkrypcja: {transcript}\n\n---\n{answer}")
 
             except Exception as exc:
                 self._bridge.error_occurred.emit(str(exc))
@@ -156,8 +170,17 @@ def main() -> None:
     )
     bridge.voice_text.connect(lambda text: window.append_voice_text(text))
 
+    # Helpers
+    def get_selected_prompt_type():
+        text = window.prompt_combo.currentText()
+        if text == "Rozmowa HR (Angielski)":
+            return "hr_english"
+        elif text == "Pytania Techniczne":
+            return "technical"
+        return "live_coding"
+
     # --------------- Workflow manager ---------------
-    workflow = _WorkflowManager(bridge)
+    workflow = _WorkflowManager(bridge, get_prompt_type_cb=get_selected_prompt_type)
 
     # --------------- Solve from screen (Ctrl+Alt+S or button) ---------------
     def on_solve_screen() -> None:

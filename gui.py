@@ -7,6 +7,8 @@ Includes clickable buttons for voice, screenshot, and stealth toggle.
 """
 
 import ctypes
+import markdown
+from pygments.formatters import HtmlFormatter
 from PyQt6.QtCore import Qt, QPoint, pyqtSignal
 from PyQt6.QtGui import QFont, QColor
 from PyQt6.QtWidgets import (
@@ -18,6 +20,7 @@ from PyQt6.QtWidgets import (
     QTextEdit,
     QApplication,
     QGraphicsDropShadowEffect,
+    QComboBox,
 )
 
 
@@ -84,11 +87,12 @@ class AssistantWindow(QWidget):
         self._container.setObjectName("container")
         self._set_container_border("rgba(100, 108, 255, 0.4)")
 
-        shadow = QGraphicsDropShadowEffect(self)
-        shadow.setBlurRadius(30)
-        shadow.setColor(QColor(100, 108, 255, 80))
-        shadow.setOffset(0, 4)
-        self._container.setGraphicsEffect(shadow)
+        # No shadow for stealth
+        # shadow = QGraphicsDropShadowEffect(self)
+        # shadow.setBlurRadius(30)
+        # shadow.setColor(QColor(100, 108, 255, 80))
+        # shadow.setOffset(0, 4)
+        # self._container.setGraphicsEffect(shadow)
 
         # ----- Title bar -----
         title_bar = QWidget()
@@ -106,6 +110,31 @@ class AssistantWindow(QWidget):
             "color: rgba(255,255,255,0.85); font-size: 13px; font-weight: 600;"
         )
         title_layout.addWidget(title_label)
+        
+        # ----- Prompt type selector -----
+        self.prompt_combo = QComboBox()
+        self.prompt_combo.addItems(["Rozmowa HR (Angielski)", "Pytania Techniczne", "Live Coding"])
+        self.prompt_combo.setCursor(Qt.CursorShape.ArrowCursor)
+        self.prompt_combo.setStyleSheet("""
+            QComboBox {
+                background: rgba(20,20,25,0.95);
+                color: rgba(255,255,255,0.9);
+                border: 1px solid rgba(80,80,80,0.5);
+                border-radius: 4px;
+                padding: 2px 8px;
+                font-size: 11px;
+            }
+            QComboBox::drop-down {
+                border: none;
+            }
+            QComboBox QAbstractItemView {
+                background: rgba(20,20,25,1);
+                color: rgba(255,255,255,0.9);
+                selection-background-color: rgba(80,80,80,0.8);
+            }
+        """)
+        title_layout.addWidget(self.prompt_combo)
+        
         title_layout.addStretch()
 
         self._status_label = QLabel("")
@@ -116,7 +145,7 @@ class AssistantWindow(QWidget):
 
         close_btn = QPushButton("✕")
         close_btn.setFixedSize(24, 24)
-        close_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        close_btn.setCursor(Qt.CursorShape.ArrowCursor)
         close_btn.setStyleSheet(
             """
             QPushButton {
@@ -144,7 +173,7 @@ class AssistantWindow(QWidget):
 
         # Voice toggle
         self._voice_btn = QPushButton("🎙️ Start nasłuchiwanie")
-        self._voice_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._voice_btn.setCursor(Qt.CursorShape.ArrowCursor)
         self._voice_btn.setStyleSheet(
             _btn_style(
                 "#fff", "rgba(255,77,106,0.15)", "rgba(255,77,106,0.4)",
@@ -156,7 +185,7 @@ class AssistantWindow(QWidget):
 
         # Solve from screen
         self._solve_btn = QPushButton("📸 Rozwiąż z ekranu")
-        self._solve_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._solve_btn.setCursor(Qt.CursorShape.ArrowCursor)
         self._solve_btn.setStyleSheet(
             _btn_style(
                 "#fff", "rgba(100,108,255,0.15)", "rgba(100,108,255,0.4)",
@@ -168,7 +197,7 @@ class AssistantWindow(QWidget):
 
         # Stealth toggle
         self._stealth_btn = QPushButton("👁️ Stealth ON")
-        self._stealth_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._stealth_btn.setCursor(Qt.CursorShape.ArrowCursor)
         self._stealth_btn.setStyleSheet(
             _btn_style(
                 "#fff", "rgba(46,204,113,0.15)", "rgba(46,204,113,0.4)",
@@ -182,6 +211,41 @@ class AssistantWindow(QWidget):
         self._response_area = QTextEdit()
         self._response_area.setReadOnly(True)
         self._response_area.setFont(QFont("Consolas", 10))
+        self._response_area.viewport().setCursor(Qt.CursorShape.ArrowCursor)
+        # Generate Pygments CSS for dark style (e.g., 'monokai')
+        pygments_css = HtmlFormatter(style='monokai').get_style_defs('.codehilite')
+        
+        self.base_html_style = f"""
+        <style>
+            body {{
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+                font-size: 13px;
+                color: rgba(255,255,255,0.95);
+                line-height: 1.5;
+            }}
+            code {{
+                background-color: rgba(0,0,0,0.3);
+                border-radius: 4px;
+                padding: 2px 4px;
+                font-family: Consolas, "Courier New", monospace;
+                font-size: 13px;
+                color: #e06c75;
+            }}
+            pre {{
+                background-color: rgba(20,20,25,0.9);
+                border-radius: 6px;
+                padding: 10px;
+                border: 1px solid rgba(255,255,255,0.1);
+            }}
+            pre code {{
+                background-color: transparent;
+                padding: 0;
+                color: inherit;
+            }}
+            {pygments_css}
+        </style>
+        """
+
         self._response_area.setStyleSheet(
             """
             QTextEdit {
@@ -189,16 +253,16 @@ class AssistantWindow(QWidget):
                 color: rgba(255,255,255,0.9);
                 border: none;
                 padding: 8px 12px;
-                selection-background-color: rgba(100,108,255,0.35);
+                selection-background-color: rgba(80,80,80,0.5);
             }
             QScrollBar:vertical {
                 background: transparent;
-                width: 6px;
+                width: 8px;
                 margin: 0;
             }
             QScrollBar::handle:vertical {
-                background: rgba(100,108,255,0.4);
-                border-radius: 3px;
+                background: rgba(80,80,80,0.7);
+                border-radius: 4px;
                 min-height: 30px;
             }
             QScrollBar::add-line:vertical,
@@ -216,6 +280,16 @@ class AssistantWindow(QWidget):
         container_layout.addWidget(btn_bar)
         container_layout.addWidget(self._response_area)
 
+        # Frameless window resizing requires a custom grip if we strictly use FramelessWindowHint
+        # But for simplicity, let's add a QSizeGrip at the bottom right of the container
+        from PyQt6.QtWidgets import QSizeGrip
+        grip_layout = QHBoxLayout()
+        grip_layout.setContentsMargins(0, 0, 0, 0)
+        grip_layout.addStretch()
+        size_grip = QSizeGrip(self._container)
+        grip_layout.addWidget(size_grip)
+        container_layout.addLayout(grip_layout)
+
         outer = QVBoxLayout(self)
         outer.setContentsMargins(12, 12, 12, 12)
         outer.addWidget(self._container)
@@ -226,7 +300,7 @@ class AssistantWindow(QWidget):
         self._container.setStyleSheet(
             f"""
             #container {{
-                background-color: rgba(18, 18, 24, 235);
+                background-color: rgba(15, 15, 15, 245);
                 border: 1px solid {color};
                 border-radius: 12px;
             }}
@@ -307,8 +381,14 @@ class AssistantWindow(QWidget):
             self._status_label.setText("")
 
     def set_response(self, text: str) -> None:
+        self._raw_markdown = text
         self._status_label.setText("")
-        self._response_area.setMarkdown(text)
+        # Convert Markdown with code highlighting to HTML
+        html_content = markdown.markdown(
+            self._raw_markdown, extensions=['fenced_code', 'codehilite', 'tables']
+        )
+        full_html = f"<html><head>{self.base_html_style}</head><body>{html_content}</body></html>"
+        self._response_area.setHtml(full_html)
 
     # ---- Voice mode ----
 
@@ -325,7 +405,18 @@ class AssistantWindow(QWidget):
             self._set_container_border("rgba(100, 108, 255, 0.4)")
 
     def append_voice_text(self, text: str) -> None:
-        current = self._response_area.toPlainText()
-        self._response_area.setPlainText(current + text)
+        if not hasattr(self, '_raw_markdown'):
+            self._raw_markdown = ""
+            
+        self._raw_markdown += text
+        
+        # Convert Markdown with code highlighting to HTML
+        html_content = markdown.markdown(
+            self._raw_markdown, extensions=['fenced_code', 'codehilite', 'tables']
+        )
+        full_html = f"<html><head>{self.base_html_style}</head><body>{html_content}</body></html>"
+        self._response_area.setHtml(full_html)
+        
+        # Scroll to bottom
         scrollbar = self._response_area.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
