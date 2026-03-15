@@ -56,10 +56,11 @@ _SYSTEM_PROMPT = (
 )
 
 _USER_PROMPTS = {
-    "hr_english": (
-        "Rozmowa HR. Wygeneruj naturalną, płynną odpowiedź na zadane pytanie. "
-        "BARDZO WAŻNA ZASADA ODNOŚNIE JĘZYKA: Jeśli zadane pytanie jest w języku POLSKIM, odpowiedz w języku POLSKIM. "
-        "Jeśli rekruter zadaje pytanie po ANGIELSKU w celu sprawdzenia Twojego poziomu, odpowiedz po ANGIELSKU (poziom B2/C1). "
+    "hr": (
+        "Rozmowa HR. Wygeneruj naturalną, płynną odpowiedź na zadane w rozmowie pytanie. "
+        "BARDZO WAŻNA ZASADA ODNOŚNIE JĘZYKA: Twoja odpowiedź ZAWSZE musi być w języku, w jakim zostało zadane pytanie. "
+        "Jeżeli rekruter zadał pytanie po POLSKU - odpowiedz po POLSKU. "
+        "Jeżeli rekruter zmienił język i zadał pytanie po ANGIELSKU w celu sprawdzenia poziomu (lub cała rozmowa jest po angielsku) - odpowiedz po ANGIELSKU (poziom B2/C1). "
         "Odpowiedź powinna brzmieć autentycznie, pokazując motywację i umiejętności miękkie. "
         "BARDZO WAŻNE STANOWISKO - Odpowiadasz jako kandydat, o poniższym życiorysie (CV):\n"
         "Imię: Radosław Marek, Software Developer.\n"

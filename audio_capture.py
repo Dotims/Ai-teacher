@@ -71,8 +71,8 @@ class SystemAudioCapture:
         
         # VAD State
         self.is_speech_active = False
-        self.silence_chunks_count = 0
         self.audio_queue = queue.Queue()
+        self._trigger_active = False
         
         # Load Silero VAD
         print("Ładowanie modelu Silero VAD...")
@@ -98,7 +98,7 @@ class SystemAudioCapture:
 
         self._frames.clear()
         self.is_speech_active = False
-        self.silence_chunks_count = 0
+        self._trigger_active = False
         device = _find_wasapi_loopback_device()
 
         def _audio_callback(indata, frames, time_info, status):
@@ -155,42 +155,64 @@ class SystemAudioCapture:
     def _process_queue(self):
         """Worker thread to process audio chunks through VAD."""
         torch.set_num_threads(1)
+        
+        # Hangover frames (e.g. 0.5 sec) to avoid cutting speech abruptly
+        hangover_chunks = int(0.5 * SAMPLE_RATE / BLOCK_SIZE)
+        current_hangover = 0
+
         while self._running:
             try:
                 raw_bytes, float32_audio = self.audio_queue.get(timeout=0.1)
                 
-                # Convert to tensor for Silero VAD
-                tensor = torch.from_numpy(float32_audio).squeeze()
-                
-                # Get speech probability
-                speech_prob = self.model(tensor, SAMPLE_RATE).item()
-                
-                if speech_prob > SPEECH_PROB_THRESHOLD:
-                    if not self.is_speech_active:
-                        self.is_speech_active = True
-                        print("🎤 Wykryto początek mowy...")
-                    self.silence_chunks_count = 0
-                    self._frames.append(raw_bytes)
+                if getattr(self, '_trigger_active', False):
+                    # Convert to tensor for Silero VAD
+                    tensor = torch.from_numpy(float32_audio).squeeze()
+                    
+                    # Get speech probability
+                    speech_prob = self.model(tensor, SAMPLE_RATE).item()
+                    
+                    if speech_prob > SPEECH_PROB_THRESHOLD:
+                        if not self.is_speech_active:
+                            self.is_speech_active = True
+                            print("🎤 Wykryto mowę w buforze...")
+                        self._frames.append(raw_bytes)
+                        current_hangover = hangover_chunks
+                    else:
+                        if current_hangover > 0:
+                            self._frames.append(raw_bytes)
+                            current_hangover -= 1
+                        else:
+                            if self.is_speech_active:
+                                self.is_speech_active = False
                 else:
-                    if self.is_speech_active:
-                        self._frames.append(raw_bytes)  # Add silence trailer
-                        self.silence_chunks_count += 1
-                        
-                        if self.silence_chunks_count >= SILENCE_CHUNKS_THRESHOLD:
-                            print("🔇 Wykryto koniec zdania (2s ciszy).")
-                            self.is_speech_active = False
-                            self.silence_chunks_count = 0
-                            
-                            # Save WAV and trigger callback
-                            wav_path = self._save_internal_buffer()
-                            if wav_path:
-                                threading.Thread(target=self.on_audio_ready, args=(wav_path,), daemon=True).start()
-                            self._frames.clear()
+                    # Drop chunks when trigger is inactive
+                    pass
 
             except queue.Empty:
                 continue
             except Exception as e:
                 print(f"VAD Error: {e}")
+
+    def set_trigger(self, active: bool):
+        """Enables or disables buffering logic from the VAD sensor."""
+        if active and not self._trigger_active:
+            # Drain queue to avoid stale audio from background buffer
+            while not self.audio_queue.empty():
+                try:
+                    self.audio_queue.get_nowait()
+                except queue.Empty:
+                    break
+            self._frames.clear()
+            self.is_speech_active = False
+            
+        self._trigger_active = active
+
+    def save_and_clear(self) -> str | None:
+        """Saves current buffer to WAV and clears it."""
+        self.set_trigger(False)
+        wav_path = self._save_internal_buffer()
+        self._frames.clear()
+        return wav_path
 
     def stop(self) -> None:
         """Stop capturing."""

@@ -54,28 +54,40 @@ class _WorkflowManager:
     def __init__(self, bridge: _SignalBridge, get_prompt_type_cb) -> None:
         self._bridge = bridge
         self._get_prompt_type = get_prompt_type_cb
-        self._audio_capture = SystemAudioCapture(on_audio_ready_callback=self._on_vad_silence)
+        self._audio_capture = SystemAudioCapture(on_audio_ready_callback=None)
         self._bridge.audio_ready.connect(self._process_audio_and_solve)
         self._processing = threading.Lock()
-
-    def _on_vad_silence(self, wav_path: str):
-        """Callback from VAD background thread."""
-        self._bridge.audio_ready.emit(wav_path)
+        
+        # Start continuous background capture
+        self._audio_capture.start()
 
     @property
     def is_recording(self) -> bool:
-        return self._audio_capture.is_running
+        return getattr(self._audio_capture, '_trigger_active', False)
 
-    def toggle_recording(self) -> None:
-        if self._audio_capture.is_running:
-            # Manually stopped
-            wav_path = self._audio_capture._save_internal_buffer()
-            self._audio_capture.stop()
+    def on_trigger_press(self) -> None:
+        """Called when toggle key is pressed."""
+        if self._processing.locked():
+            return
+        if not self.is_recording:
+            print("🔴 Nagrywanie rozpoczęte (Toggle ON)...")
+            self._audio_capture.set_trigger(True)
+            self._bridge.voice_active.emit(True)
+        else:
+            print("⏹️ Zakończono nagrywanie (Toggle OFF). Rozpoczynam przetwarzanie...")
+            self._audio_capture.set_trigger(False)
             self._bridge.voice_active.emit(False)
+            wav_path = self._audio_capture.save_and_clear()
             if wav_path:
                 self._bridge.audio_ready.emit(wav_path)
-        else:
-            self._start()
+
+    def on_trigger_release(self) -> None:
+        """Left empty as we now use toggle on press, not push-to-talk."""
+        pass
+
+    def toggle_recording(self) -> None:
+        """Fallback for GUI button toggle."""
+        self.on_trigger_press()
 
     def solve_screen_only(self) -> None:
         """One-shot capture + solve without audio context."""
@@ -96,10 +108,6 @@ class _WorkflowManager:
 
         threading.Thread(target=_worker, daemon=True).start()
 
-    def _start(self) -> None:
-        self._audio_capture.start()
-        self._bridge.voice_active.emit(True)
-
     def _process_audio_and_solve(self, wav_path: str) -> None:
         if not self._processing.acquire(blocking=False):
             return
@@ -107,8 +115,6 @@ class _WorkflowManager:
         prompt_type = self._get_prompt_type()
         def _worker() -> None:
             try:
-                # Ensure the UI reflects that listening stopped
-                self._audio_capture.stop()
                 self._bridge.voice_active.emit(False)
                 
                 self._bridge.show_loading.emit()
@@ -173,8 +179,8 @@ def main() -> None:
     # Helpers
     def get_selected_prompt_type():
         text = window.prompt_combo.currentText()
-        if text == "Rozmowa HR (Angielski)":
-            return "hr_english"
+        if text == "Rozmowa HR (PL/ENG)":
+            return "hr"
         elif text == "Pytania Techniczne":
             return "technical"
         return "live_coding"
@@ -182,31 +188,31 @@ def main() -> None:
     # --------------- Workflow manager ---------------
     workflow = _WorkflowManager(bridge, get_prompt_type_cb=get_selected_prompt_type)
 
-    # --------------- Solve from screen (Ctrl+Alt+S or button) ---------------
+    # --------------- Solve from screen (Numpad 1 or button) ---------------
     def on_solve_screen() -> None:
         if workflow.is_recording:
-            # If recording, treat the "Solve" command exactly like stopping the recording
-            # so it transcribes what was said up to now and screenshots.
             workflow.toggle_recording()
         else:
             workflow.solve_screen_only()
 
-    keyboard.add_hotkey("ctrl+alt+s", on_solve_screen, suppress=False)
+    keyboard.on_press_key(79, lambda e: on_solve_screen(), suppress=False) # 79 is scan code for Numpad 1
     window.solve_screen_clicked.connect(on_solve_screen)
 
-    # --------------- Voice toggle (Ctrl+Alt+A or button) ---------------
-    def on_voice_toggle() -> None:
-        workflow.toggle_recording()
+    # --------------- Toggle Voice (Right Ctrl) ---------------
+    # We want to use right ctrl as a toggle (Start / Stop)
+    # Using strict scan code or name check to avoid Left Ctrl triggering it.
+    def _is_right_ctrl(e) -> bool:
+        return e.name == 'right ctrl' or e.scan_code == 285
 
-    keyboard.add_hotkey("ctrl+alt+a", on_voice_toggle, suppress=False)
-    window.voice_toggle_clicked.connect(on_voice_toggle)
+    keyboard.on_press(lambda e: workflow.on_trigger_press() if _is_right_ctrl(e) else None, suppress=False)
+    window.voice_toggle_clicked.connect(workflow.toggle_recording)
 
     # --------------- Show window on start ---------------
     window.show()
 
     print("✅ Assistant (OpenAI) uruchomiony")
-    print("   Ctrl+Alt+S  →  Zrzut ekranu + analiza kodu")
-    print("   Ctrl+Alt+A  →  Włącz nasłuchiwanie, po czym naciśnij ponownie aby wysłać do AI (Tekst + Ekran)")
+    print("   Numpad 1    →  Zrzut ekranu + analiza kodu")
+    print("   Prawy Ctrl  →  Włącz/Wyłącz nagrywanie mowy (Toggle)")
     print("   Używaj przycisków w oknie lub skrótów klawiszowych.")
 
     sys.exit(app.exec())

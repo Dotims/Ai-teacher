@@ -21,6 +21,7 @@ from PyQt6.QtWidgets import (
     QApplication,
     QGraphicsDropShadowEffect,
     QComboBox,
+    QMessageBox,
 )
 
 
@@ -113,7 +114,7 @@ class AssistantWindow(QWidget):
         
         # ----- Prompt type selector -----
         self.prompt_combo = QComboBox()
-        self.prompt_combo.addItems(["Rozmowa HR (Angielski)", "Pytania Techniczne", "Live Coding"])
+        self.prompt_combo.addItems(["Rozmowa HR (PL/ENG)", "Pytania Techniczne", "Live Coding"])
         self.prompt_combo.setCursor(Qt.CursorShape.ArrowCursor)
         self.prompt_combo.setStyleSheet("""
             QComboBox {
@@ -217,30 +218,36 @@ class AssistantWindow(QWidget):
         
         self.base_html_style = f"""
         <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
             body {{
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-                font-size: 13px;
-                color: rgba(255,255,255,0.95);
-                line-height: 1.5;
+                font-family: 'Inter', "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+                font-size: 14.5px;
+                color: rgba(255, 255, 255, 0.95);
+                line-height: 1.65;
+                padding: 6px;
+                font-weight: 500;
             }}
             code {{
-                background-color: rgba(0,0,0,0.3);
+                background-color: rgba(0,0,0,0.4);
                 border-radius: 4px;
-                padding: 2px 4px;
-                font-family: Consolas, "Courier New", monospace;
-                font-size: 13px;
-                color: #e06c75;
+                padding: 3px 6px;
+                font-family: 'JetBrains Mono', Consolas, monospace;
+                font-size: 13.5px;
+                color: #ff7b72;
+                font-weight: 500;
             }}
             pre {{
-                background-color: rgba(20,20,25,0.9);
-                border-radius: 6px;
-                padding: 10px;
-                border: 1px solid rgba(255,255,255,0.1);
+                background-color: rgba(16,16,20,0.95);
+                border-radius: 8px;
+                padding: 12px;
+                border: 1px solid rgba(255,255,255,0.15);
+                box-shadow: 0 4px 6px rgba(0,0,0,0.3);
             }}
             pre code {{
                 background-color: transparent;
                 padding: 0;
                 color: inherit;
+                font-weight: normal;
             }}
             {pygments_css}
         </style>
@@ -250,10 +257,10 @@ class AssistantWindow(QWidget):
             """
             QTextEdit {
                 background: transparent;
-                color: rgba(255,255,255,0.9);
+                color: rgba(255,255,255,0.95);
                 border: none;
-                padding: 8px 12px;
-                selection-background-color: rgba(80,80,80,0.5);
+                padding: 10px 14px;
+                selection-background-color: rgba(100,108,255,0.5);
             }
             QScrollBar:vertical {
                 background: transparent;
@@ -261,7 +268,7 @@ class AssistantWindow(QWidget):
                 margin: 0;
             }
             QScrollBar::handle:vertical {
-                background: rgba(80,80,80,0.7);
+                background: rgba(100,100,100,0.7);
                 border-radius: 4px;
                 min-height: 30px;
             }
@@ -274,21 +281,22 @@ class AssistantWindow(QWidget):
 
         # ----- Layout -----
         container_layout = QVBoxLayout(self._container)
-        container_layout.setContentsMargins(0, 0, 0, 8)
+        container_layout.setContentsMargins(0, 0, 0, 0)
         container_layout.setSpacing(0)
         container_layout.addWidget(title_bar)
         container_layout.addWidget(btn_bar)
         container_layout.addWidget(self._response_area)
 
-        # Frameless window resizing requires a custom grip if we strictly use FramelessWindowHint
-        # But for simplicity, let's add a QSizeGrip at the bottom right of the container
-        from PyQt6.QtWidgets import QSizeGrip
-        grip_layout = QHBoxLayout()
-        grip_layout.setContentsMargins(0, 0, 0, 0)
-        grip_layout.addStretch()
-        size_grip = QSizeGrip(self._container)
-        grip_layout.addWidget(size_grip)
-        container_layout.addLayout(grip_layout)
+        # Custom resize handle drawn perfectly at the corner
+        handle_layout = QHBoxLayout()
+        handle_layout.setContentsMargins(0, 0, 4, 4)
+        handle_layout.addStretch()
+        self._resize_handle = QLabel("↘")
+        self._resize_handle.setStyleSheet("color: rgba(255,255,255,0.25); font-size: 14px;")
+        # Cursor transparent to avoid Windows resize icon override
+        self._resize_handle.setCursor(Qt.CursorShape.ArrowCursor)
+        handle_layout.addWidget(self._resize_handle)
+        container_layout.addLayout(handle_layout)
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(12, 12, 12, 12)
@@ -332,6 +340,18 @@ class AssistantWindow(QWidget):
             pass
 
     def _on_stealth_toggle(self) -> None:
+        if self._stealth_on:
+            # We are trying to turn it OFF.
+            reply = QMessageBox.question(
+                self,
+                "Wyłączenie Stealth Mode",
+                "Na pewno chcesz wyłączyć Stealth Mode?\n\nJeżeli udostępniasz ekran, to okno stanie się widoczne!",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+
         self._stealth_on = not self._stealth_on
         if self._stealth_on:
             self._stealth_btn.setText("👁️ Stealth ON")
@@ -354,19 +374,33 @@ class AssistantWindow(QWidget):
         self.stealth_toggled.emit(self._stealth_on)
 
     # ------------------------------------------------------------------
-    # Dragging
+    # Dragging & Custom Resizing
     # ------------------------------------------------------------------
 
     def mousePressEvent(self, event) -> None:
         if event.button() == Qt.MouseButton.LeftButton:
-            self._drag_pos = event.globalPosition().toPoint() - self.pos()
+            pos = event.pos()
+            # If pointer is at the bottom-right corner (within 30x30 px area)
+            if pos.x() >= self.width() - 30 and pos.y() >= self.height() - 30:
+                self._resizing = True
+                self._drag_start_pos = event.globalPosition().toPoint()
+                self._drag_start_size = self.size()
+            else:
+                self._resizing = False
+                self._drag_pos = event.globalPosition().toPoint() - self.pos()
 
     def mouseMoveEvent(self, event) -> None:
-        if self._drag_pos and event.buttons() & Qt.MouseButton.LeftButton:
+        if getattr(self, '_resizing', False) and event.buttons() & Qt.MouseButton.LeftButton:
+            delta = event.globalPosition().toPoint() - self._drag_start_pos
+            new_width = max(350, self._drag_start_size.width() + delta.x())
+            new_height = max(200, self._drag_start_size.height() + delta.y())
+            self.resize(new_width, new_height)
+        elif getattr(self, '_drag_pos', None) and event.buttons() & Qt.MouseButton.LeftButton:
             self.move(event.globalPosition().toPoint() - self._drag_pos)
 
     def mouseReleaseEvent(self, event) -> None:
         self._drag_pos = None
+        self._resizing = False
 
     # ------------------------------------------------------------------
     # Public helpers
@@ -405,10 +439,8 @@ class AssistantWindow(QWidget):
             self._set_container_border("rgba(100, 108, 255, 0.4)")
 
     def append_voice_text(self, text: str) -> None:
-        if not hasattr(self, '_raw_markdown'):
-            self._raw_markdown = ""
-            
-        self._raw_markdown += text
+        # We replace the content entirely for the current turn to avoid scrolling issues.
+        self._raw_markdown = text
         
         # Convert Markdown with code highlighting to HTML
         html_content = markdown.markdown(
