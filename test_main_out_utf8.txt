@@ -1,0 +1,46 @@
+﻿.\.venv\Scripts\python.exe : QWindowsContext: 
+OleInitialize() failed:  "COM error 0x80010106: 
+Cannot change thread mode after it is set."
+At line:1 char:1
++ .\.venv\Scripts\python.exe main.py > 
+test_main_out.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (QWi 
+   ndowsContext...ter it is set.":String) [], R  
+  emoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Using cache found in C:\Users\rados/.cache\torch\
+hub\snakers4_silero-vad_master
+úadowanie modelu Silero VAD...
+Silero VAD za│adowane.
+Traceback (most recent call last):
+  File "C:\Users\rados\Desktop\projects\Ai-teache
+r\main.py", line 257, in <module>
+    main()
+    ~~~~^^
+  File "C:\Users\rados\Desktop\projects\Ai-teache
+r\main.py", line 224, in main
+    workflow = _WorkflowManager(bridge, 
+get_prompt_type_cb=get_selected_prompt_type)
+  File "C:\Users\rados\Desktop\projects\Ai-teache
+r\main.py", line 65, in __init__
+    self._audio_capture.start()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\rados\Desktop\projects\Ai-teache
+r\audio_capture.py", line 113, in start
+    print(f"\U0001f3af Wybrane urz╣dzenia 
+Loopback: {[t.name for t in targets]}")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rados\AppData\Local\Programs\Pyt
+hon\Python313\Lib\encodings\cp1250.py", line 19, 
+in encode
+    return codecs.charmap_encode(input,self.error
+s,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode 
+character '\U0001f3af' in position 0: character 
+maps to <undefined>

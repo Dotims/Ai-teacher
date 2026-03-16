@@ -1,0 +1,517 @@
+﻿.\.venv\Scripts\python.exe : Exception in thread 
+Thread-11 (test_device):
+At line:1 char:1
++ .\.venv\Scripts\python.exe test_audio.py > 
+test_out.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Excep 
+   tion in th... (test_device)::String) [], Remot  
+  eException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Exception in thread Thread-2 (test_device):
+Exception in thread Thread-7 (test_device):
+Exception in thread Thread-10 (test_device):
+Exception in thread Thread-9 (test_device):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "C:\Users\rados\Desktop\projects\Ai-teacher\
+test_audio.py", line 12, in test_device
+    data = recorder.record(numframes=1024)
+  File "C:\Users\rados\Desktop\projects\Ai-teacher\
+test_audio.py", line 12, in test_device
+    data = recorder.record(numframes=1024)
+  File "C:\Users\rados\Desktop\projects\Ai-teacher\
+test_audio.py", line 12, in test_device
+    data = recorder.record(numframes=1024)
+  File "C:\Users\rados\Desktop\projects\Ai-teacher\
+test_audio.py", line 12, in test_device
+    data = recorder.record(numframes=1024)
+  File "C:\Users\rados\Desktop\projects\Ai-teacher\
+.venv\Lib\site-packages\soundcard\mediafoundation.p
+y", line 810, in record
+    chunk = self._record_chunk()
+  File "C:\Users\rados\Desktop\projects\Ai-teacher\
+.venv\Lib\site-packages\soundcard\mediafoundation.p
+y", line 810, in record
+    chunk = self._record_chunk()
+  File "C:\Users\rados\Desktop\projects\Ai-teacher\
+.venv\Lib\site-packages\soundcard\mediafoundation.p
+y", line 810, in record
+    chunk = self._record_chunk()
+  File "C:\Users\rados\Desktop\projects\Ai-teacher\
+.venv\Lib\site-packages\soundcard\mediafoundation.p
+y", line 761, in _record_chunk
+    chunk = numpy.fromstring(_ffi.buffer(data_ptr, 
+nframes*4*len(set(self.channelmap))), 
+dtype='float32')
+  File "C:\Users\rados\Desktop\projects\Ai-teacher\
+.venv\Lib\site-packages\soundcard\mediafoundation.p
+y", line 761, in _record_chunk
+    chunk = numpy.fromstring(_ffi.buffer(data_ptr, 
+nframes*4*len(set(self.channelmap))), 
+dtype='float32')
+  File "C:\Users\rados\Desktop\projects\Ai-teacher\
+.venv\Lib\site-packages\soundcard\mediafoundation.p
+y", line 761, in _record_chunk
+    chunk = numpy.fromstring(_ffi.buffer(data_ptr, 
+nframes*4*len(set(self.channelmap))), 
+dtype='float32')
+ValueError: The binary mode of fromstring is 
+removed, use frombuffer instead
+ValueError: The binary mode of fromstring is 
+removed, use frombuffer instead
+ValueError: The binary mode of fromstring is 
+removed, use frombuffer instead
+
+During handling of the above exception, another 
+exception occurred:
+
+
+During handling of the above exception, another 
+exception occurred:
+
+
+During handling of the above exception, another 
+exception occurred:
+
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "C:\Users\rados\Desktop\projects\Ai-teacher\
+test_audio.py", line 12, in test_device
+    data = recorder.record(numframes=1024)
+Traceback (most recent call last):
+  File "C:\Users\rados\Desktop\projects\Ai-teacher\
+.venv\Lib\site-packages\soundcard\mediafoundation.p
+y", line 810, in record
+    chunk = self._record_chunk()
+  File "C:\Users\rados\Desktop\projects\Ai-teacher\
+.venv\Lib\site-packages\soundcard\mediafoundation.p
+y", line 810, in record
+    chunk = self._record_chunk()
+  File "C:\Users\rados\Desktop\projects\Ai-teacher\
+.venv\Lib\site-packages\soundcard\mediafoundation.p
+y", line 761, in _record_chunk
+    chunk = numpy.fromstring(_ffi.buffer(data_ptr, 
+nframes*4*len(set(self.channelmap))), 
+dtype='float32')
+  File "C:\Users\rados\Desktop\projects\Ai-teacher\
+.venv\Lib\site-packages\soundcard\mediafoundation.p
+y", line 761, in _record_chunk
+    chunk = numpy.fromstring(_ffi.buffer(data_ptr, 
+nframes*4*len(set(self.channelmap))), 
+dtype='float32')
+ValueError: The binary mode of fromstring is 
+removed, use frombuffer instead
+ValueError: The binary mode of fromstring is 
+removed, use frombuffer instead
+
+During handling of the above exception, another 
+exception occurred:
+
+
+During handling of the above exception, another 
+exception occurred:
+
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\threading.py", line 1041, in 
+_bootstrap_inner
+    self.run()
+    ~~~~~~~~^^
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\threading.py", line 1041, in 
+_bootstrap_inner
+    self.run()
+    ~~~~~~~~^^
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\threading.py", line 992, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\threading.py", line 1041, in 
+_bootstrap_inner
+    self.run()
+    ~~~~~~~~^^
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\threading.py", line 992, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rados\Desktop\projects\Ai-teacher\
+test_audio.py", line 22, in test_device
+    print(f"\u274c [BúąD] - {mic.name}: {e}")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\threading.py", line 992, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rados\Desktop\projects\Ai-teacher\
+test_audio.py", line 22, in test_device
+    print(f"\u274c [BúąD] - {mic.name}: {e}")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\encodings\cp1250.py", line 19, in 
+encode
+    return codecs.charmap_encode(input,self.errors,
+encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+  File "C:\Users\rados\Desktop\projects\Ai-teacher\
+test_audio.py", line 22, in test_device
+    print(f"\u274c [BúąD] - {mic.name}: {e}")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\encodings\cp1250.py", line 19, in 
+encode
+    return codecs.charmap_encode(input,self.errors,
+encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode 
+character '\u274c' in position 0: character maps 
+to <undefined>
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\encodings\cp1250.py", line 19, in 
+encode
+    return codecs.charmap_encode(input,self.errors,
+encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode 
+character '\u274c' in position 0: character maps 
+to <undefined>
+UnicodeEncodeError: 'charmap' codec can't encode 
+character '\u274c' in position 0: character maps 
+to <undefined>
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\threading.py", line 1041, in 
+_bootstrap_inner
+    self.run()
+    ~~~~~~~~^^
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\threading.py", line 1041, in 
+_bootstrap_inner
+    self.run()
+    ~~~~~~~~^^
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\threading.py", line 992, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\threading.py", line 992, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rados\Desktop\projects\Ai-teacher\
+test_audio.py", line 22, in test_device
+    print(f"\u274c [BúąD] - {mic.name}: {e}")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rados\Desktop\projects\Ai-teacher\
+test_audio.py", line 22, in test_device
+    print(f"\u274c [BúąD] - {mic.name}: {e}")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\encodings\cp1250.py", line 19, in 
+encode
+    return codecs.charmap_encode(input,self.errors,
+encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\encodings\cp1250.py", line 19, in 
+encode
+    return codecs.charmap_encode(input,self.errors,
+encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode 
+character '\u274c' in position 0: character maps 
+to <undefined>
+UnicodeEncodeError: 'charmap' codec can't encode 
+character '\u274c' in position 0: character maps 
+to <undefined>
+Exception in thread Thread-8 (test_device):
+Traceback (most recent call last):
+  File "C:\Users\rados\Desktop\projects\Ai-teacher\
+test_audio.py", line 18, in test_device
+    print(f"\u2705 [G│oťnoťŠ: {max_val:.4f}] - 
+{mic.name}")
+    
+~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\encodings\cp1250.py", line 19, in 
+encode
+    return codecs.charmap_encode(input,self.errors,
+encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode 
+character '\u2705' in position 0: character maps 
+to <undefined>
+
+During handling of the above exception, another 
+exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\threading.py", line 1041, in 
+_bootstrap_inner
+    self.run()
+    ~~~~~~~~^^
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\threading.py", line 992, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rados\Desktop\projects\Ai-teacher\
+test_audio.py", line 22, in test_device
+    print(f"\u274c [BúąD] - {mic.name}: {e}")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\encodings\cp1250.py", line 19, in 
+encode
+    return codecs.charmap_encode(input,self.errors,
+encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode 
+character '\u274c' in position 0: character maps 
+to <undefined>
+Exception in thread Thread-6 (test_device):
+Traceback (most recent call last):
+  File "C:\Users\rados\Desktop\projects\Ai-teacher\
+test_audio.py", line 18, in test_device
+    print(f"\u2705 [G│oťnoťŠ: {max_val:.4f}] - 
+{mic.name}")
+    
+~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\encodings\cp1250.py", line 19, in 
+encode
+    return codecs.charmap_encode(input,self.errors,
+encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode 
+character '\u2705' in position 0: character maps 
+to <undefined>
+
+During handling of the above exception, another 
+exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\threading.py", line 1041, in 
+_bootstrap_inner
+    self.run()
+    ~~~~~~~~^^
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\threading.py", line 992, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rados\Desktop\projects\Ai-teacher\
+test_audio.py", line 22, in test_device
+    print(f"\u274c [BúąD] - {mic.name}: {e}")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\encodings\cp1250.py", line 19, in 
+encode
+    return codecs.charmap_encode(input,self.errors,
+encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode 
+character '\u274c' in position 0: character maps 
+to <undefined>
+Exception in thread Thread-1 (test_device):
+Traceback (most recent call last):
+  File "C:\Users\rados\Desktop\projects\Ai-teacher\
+test_audio.py", line 18, in test_device
+    print(f"\u2705 [G│oťnoťŠ: {max_val:.4f}] - 
+{mic.name}")
+    
+~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\encodings\cp1250.py", line 19, in 
+encode
+    return codecs.charmap_encode(input,self.errors,
+encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode 
+character '\u2705' in position 0: character maps 
+to <undefined>
+
+During handling of the above exception, another 
+exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\threading.py", line 1041, in 
+_bootstrap_inner
+    self.run()
+    ~~~~~~~~^^
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\threading.py", line 992, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rados\Desktop\projects\Ai-teacher\
+test_audio.py", line 22, in test_device
+    print(f"\u274c [BúąD] - {mic.name}: {e}")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\encodings\cp1250.py", line 19, in 
+encode
+    return codecs.charmap_encode(input,self.errors,
+encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode 
+character '\u274c' in position 0: character maps 
+to <undefined>
+Exception in thread Thread-4 (test_device):
+Traceback (most recent call last):
+  File "C:\Users\rados\Desktop\projects\Ai-teacher\
+test_audio.py", line 18, in test_device
+    print(f"\u2705 [G│oťnoťŠ: {max_val:.4f}] - 
+{mic.name}")
+    
+~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\encodings\cp1250.py", line 19, in 
+encode
+    return codecs.charmap_encode(input,self.errors,
+encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode 
+character '\u2705' in position 0: character maps 
+to <undefined>
+
+During handling of the above exception, another 
+exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\threading.py", line 1041, in 
+_bootstrap_inner
+    self.run()
+    ~~~~~~~~^^
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\threading.py", line 992, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rados\Desktop\projects\Ai-teacher\
+test_audio.py", line 22, in test_device
+    print(f"\u274c [BúąD] - {mic.name}: {e}")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\encodings\cp1250.py", line 19, in 
+encode
+    return codecs.charmap_encode(input,self.errors,
+encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode 
+character '\u274c' in position 0: character maps 
+to <undefined>
+Exception in thread Thread-5 (test_device):
+Traceback (most recent call last):
+  File "C:\Users\rados\Desktop\projects\Ai-teacher\
+test_audio.py", line 18, in test_device
+    print(f"\u2705 [G│oťnoťŠ: {max_val:.4f}] - 
+{mic.name}")
+    
+~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\encodings\cp1250.py", line 19, in 
+encode
+    return codecs.charmap_encode(input,self.errors,
+encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode 
+character '\u2705' in position 0: character maps 
+to <undefined>
+
+During handling of the above exception, another 
+exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\threading.py", line 1041, in 
+_bootstrap_inner
+    self.run()
+    ~~~~~~~~^^
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\threading.py", line 992, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rados\Desktop\projects\Ai-teacher\
+test_audio.py", line 22, in test_device
+    print(f"\u274c [BúąD] - {mic.name}: {e}")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\encodings\cp1250.py", line 19, in 
+encode
+    return codecs.charmap_encode(input,self.errors,
+encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode 
+character '\u274c' in position 0: character maps 
+to <undefined>
+Exception in thread Thread-3 (test_device):
+Traceback (most recent call last):
+  File "C:\Users\rados\Desktop\projects\Ai-teacher\
+test_audio.py", line 18, in test_device
+    print(f"\u2705 [G│oťnoťŠ: {max_val:.4f}] - 
+{mic.name}")
+    
+~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\encodings\cp1250.py", line 19, in 
+encode
+    return codecs.charmap_encode(input,self.errors,
+encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode 
+character '\u2705' in position 0: character maps 
+to <undefined>
+
+During handling of the above exception, another 
+exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\threading.py", line 1041, in 
+_bootstrap_inner
+    self.run()
+    ~~~~~~~~^^
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\threading.py", line 992, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rados\Desktop\projects\Ai-teacher\
+test_audio.py", line 22, in test_device
+    print(f"\u274c [BúąD] - {mic.name}: {e}")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\rados\AppData\Local\Programs\Pytho
+n\Python313\Lib\encodings\cp1250.py", line 19, in 
+encode
+    return codecs.charmap_encode(input,self.errors,
+encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode 
+character '\u274c' in position 0: character maps 
+to <undefined>
+Rozpoczynam testowanie urz╣dze˝ audio (5 sekund nas│uchiwania)...
+W│╣cz proszŕ na ten czas jakiť dčwiŕk na komputerze (np. filmik na YT lub kogoť na Discordzie)!
+
+
+Test zako˝czony.

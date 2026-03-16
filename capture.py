@@ -6,8 +6,12 @@ entirely in memory (no disk I/O).
 """
 
 from io import BytesIO
+import os
 import mss
 from PIL import Image
+
+
+MAX_CAPTURE_SIDE = int(os.getenv("MAX_CAPTURE_SIDE", "1280"))
 
 
 def capture_screen() -> bytes:
@@ -19,6 +23,9 @@ def capture_screen() -> bytes:
 
         # Convert raw BGRA pixels to a PIL Image, then to PNG bytes
         img = Image.frombytes("RGB", screenshot.size, screenshot.rgb)
+        if MAX_CAPTURE_SIDE > 0 and max(img.size) > MAX_CAPTURE_SIDE:
+            img.thumbnail((MAX_CAPTURE_SIDE, MAX_CAPTURE_SIDE), Image.Resampling.LANCZOS)
+
         buffer = BytesIO()
         img.save(buffer, format="PNG")
         return buffer.getvalue()

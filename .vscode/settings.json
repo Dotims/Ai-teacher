@@ -1,0 +1,12 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^c:/Users/rados/Desktop/projects/Ai-teacher/\\.venv/Scripts/python\\.exe main\\.py$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^\\$env:WHISPER_PRELOAD_MODE='off'; c:/Users/rados/Desktop/projects/Ai-teacher/\\.venv/Scripts/python\\.exe -c \"from ai_service import preload_transcriber; print\\(preload_transcriber\\(\\)\\)\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

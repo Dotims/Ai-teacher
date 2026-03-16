@@ -21,8 +21,10 @@ from PyQt6.QtWidgets import (
     QApplication,
     QGraphicsDropShadowEffect,
     QComboBox,
-    QMessageBox,
+    QDialog,
+    QLineEdit,
 )
+import random
 
 
 # Windows API constants
@@ -54,6 +56,89 @@ def _btn_style(fg, bg, border, hover_bg, press_bg) -> str:
         fg=fg, bg=bg, border=border, hover_bg=hover_bg, press_bg=press_bg
     )
 
+
+class StealthConfirmDialog(QDialog):
+    """Custom frameless dialog asking for a 3-digit PIN to disable stealth mode."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowFlags(
+            Qt.WindowType.FramelessWindowHint | Qt.WindowType.Tool
+        )
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setModal(True)
+        self.setFixedSize(320, 180)
+
+        self._expected_pin = str(random.randint(100, 999))
+        self._init_ui()
+
+    def _init_ui(self):
+        container = QWidget(self)
+        container.setFixedSize(320, 180)
+        container.setStyleSheet(
+            """
+            QWidget {
+                background-color: rgba(20, 20, 25, 245);
+                border: 1px solid rgba(255, 77, 106, 0.5);
+                border-radius: 12px;
+                color: rgba(255, 255, 255, 0.95);
+                font-family: 'Inter', "Segoe UI", sans-serif;
+            }
+            """
+        )
+
+        layout = QVBoxLayout(container)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(10)
+
+        title = QLabel("Wyłączenie Stealth Mode")
+        title.setStyleSheet("font-size: 15px; font-weight: 600; color: #ff4d6a; border: none;")
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title)
+
+        desc = QLabel(f"Przepisz kod <b>{self._expected_pin}</b> aby potwierdzić.")
+        desc.setStyleSheet("font-size: 13px; border: none;")
+        desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(desc)
+
+        self._input = QLineEdit()
+        self._input.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._input.setStyleSheet(
+            """
+            QLineEdit {
+                background: rgba(0, 0, 0, 0.4);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                border-radius: 6px;
+                padding: 6px;
+                font-size: 16px;
+                letter-spacing: 4px;
+            }
+            QLineEdit:focus {
+                border: 1px solid #ff4d6a;
+            }
+            """
+        )
+        self._input.setMaxLength(3)
+        self._input.textChanged.connect(self._check_pin)
+        layout.addWidget(self._input)
+
+        btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(10)
+        
+        cancel_btn = QPushButton("Anuluj")
+        cancel_btn.setCursor(Qt.CursorShape.ArrowCursor)
+        cancel_btn.setStyleSheet(_btn_style("#fff", "rgba(100,100,100,0.2)", "rgba(100,100,100,0.5)", "rgba(100,100,100,0.4)", "rgba(100,100,100,0.6)"))
+        cancel_btn.clicked.connect(self.reject)
+        
+        btn_layout.addStretch()
+        btn_layout.addWidget(cancel_btn)
+        btn_layout.addStretch()
+        
+        layout.addLayout(btn_layout)
+
+    def _check_pin(self, text):
+        if text == self._expected_pin:
+            self.accept()
 
 class AssistantWindow(QWidget):
     """Stealth overlay that displays AI-generated answers."""
@@ -136,6 +221,11 @@ class AssistantWindow(QWidget):
         """)
         title_layout.addWidget(self.prompt_combo)
         
+        # ----- Token Info Label -----
+        self._token_label = QLabel("")
+        self._token_label.setStyleSheet("color: rgba(255,255,255,0.4); font-size: 10px; padding-right: 10px;")
+        title_layout.addWidget(self._token_label)
+
         title_layout.addStretch()
 
         self._status_label = QLabel("")
@@ -342,14 +432,12 @@ class AssistantWindow(QWidget):
     def _on_stealth_toggle(self) -> None:
         if self._stealth_on:
             # We are trying to turn it OFF.
-            reply = QMessageBox.question(
-                self,
-                "Wyłączenie Stealth Mode",
-                "Na pewno chcesz wyłączyć Stealth Mode?\n\nJeżeli udostępniasz ekran, to okno stanie się widoczne!",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
-                QMessageBox.StandardButton.No,
+            dialog = StealthConfirmDialog(self)
+            # Center dialog over the main window
+            dialog.move(
+                self.geometry().center() - dialog.rect().center()
             )
-            if reply != QMessageBox.StandardButton.Yes:
+            if dialog.exec() != QDialog.DialogCode.Accepted:
                 return
 
         self._stealth_on = not self._stealth_on
@@ -408,15 +496,22 @@ class AssistantWindow(QWidget):
 
     def set_loading(self, loading: bool) -> None:
         if loading:
-            self._mode_dot.setStyleSheet("color: #646cff; font-size: 10px;")
-            self._status_label.setText("⏳ Analizuję…")
+            self._mode_dot.setStyleSheet("color: #ffaa00; font-size: 10px;")
+            self._status_label.setText("⏳ Analizuję… (kliknij 'Anuluj' by przerwać)")
             self._response_area.setPlainText("")
+            self._voice_btn.setText("❌ Anuluj")
+            self._solve_btn.setEnabled(False)
         else:
             self._status_label.setText("")
+            self._voice_btn.setText("🎙️ Start nasłuchiwanie")
+            self._solve_btn.setEnabled(True)
 
-    def set_response(self, text: str) -> None:
+    def set_response(self, text: str, info: str = "") -> None:
         self._raw_markdown = text
         self._status_label.setText("")
+        if info:
+            self._token_label.setText(info)
+        
         # Convert Markdown with code highlighting to HTML
         html_content = markdown.markdown(
             self._raw_markdown, extensions=['fenced_code', 'codehilite', 'tables']
