@@ -152,6 +152,8 @@ class AssistantWindow(QWidget):
         super().__init__()
 
         self._stealth_on = True  # stealth enabled by default
+        self._response_history: list[dict[str, str]] = []
+        self._history_index = -1
 
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint
@@ -201,6 +203,8 @@ class AssistantWindow(QWidget):
         self.prompt_combo = QComboBox()
         self.prompt_combo.addItems(["Rozmowa HR (PL/ENG)", "Pytania Techniczne", "Live Coding"])
         self.prompt_combo.setCursor(Qt.CursorShape.ArrowCursor)
+        self.prompt_combo.setMinimumWidth(155)
+        self.prompt_combo.setMaximumWidth(175)
         self.prompt_combo.setStyleSheet("""
             QComboBox {
                 background: rgba(20,20,25,0.95);
@@ -224,6 +228,9 @@ class AssistantWindow(QWidget):
         # ----- Token Info Label -----
         self._token_label = QLabel("")
         self._token_label.setStyleSheet("color: rgba(255,255,255,0.4); font-size: 10px; padding-right: 10px;")
+        self._token_label.setFixedWidth(190)
+        self._token_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        self._token_label.setToolTip("")
         title_layout.addWidget(self._token_label)
 
         title_layout.addStretch()
@@ -232,6 +239,8 @@ class AssistantWindow(QWidget):
         self._status_label.setStyleSheet(
             "color: rgba(255,255,255,0.45); font-size: 11px;"
         )
+        self._status_label.setMaximumWidth(260)
+        self._status_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         title_layout.addWidget(self._status_label)
 
         close_btn = QPushButton("✕")
@@ -265,6 +274,7 @@ class AssistantWindow(QWidget):
         # Voice toggle
         self._voice_btn = QPushButton("🎙️ Start nasłuchiwanie")
         self._voice_btn.setCursor(Qt.CursorShape.ArrowCursor)
+        self._voice_btn.setMinimumWidth(152)
         self._voice_btn.setStyleSheet(
             _btn_style(
                 "#fff", "rgba(255,77,106,0.15)", "rgba(255,77,106,0.4)",
@@ -277,6 +287,7 @@ class AssistantWindow(QWidget):
         # Solve from screen
         self._solve_btn = QPushButton("📸 Rozwiąż z ekranu")
         self._solve_btn.setCursor(Qt.CursorShape.ArrowCursor)
+        self._solve_btn.setMinimumWidth(152)
         self._solve_btn.setStyleSheet(
             _btn_style(
                 "#fff", "rgba(100,108,255,0.15)", "rgba(100,108,255,0.4)",
@@ -289,6 +300,7 @@ class AssistantWindow(QWidget):
         # Stealth toggle
         self._stealth_btn = QPushButton("👁️ Stealth ON")
         self._stealth_btn.setCursor(Qt.CursorShape.ArrowCursor)
+        self._stealth_btn.setMinimumWidth(152)
         self._stealth_btn.setStyleSheet(
             _btn_style(
                 "#fff", "rgba(46,204,113,0.15)", "rgba(46,204,113,0.4)",
@@ -297,6 +309,45 @@ class AssistantWindow(QWidget):
         )
         self._stealth_btn.clicked.connect(self._on_stealth_toggle)
         btn_layout.addWidget(self._stealth_btn)
+
+        # ----- Response history navigation -----
+        nav_bar = QWidget()
+        nav_bar.setStyleSheet("background: transparent;")
+        nav_layout = QHBoxLayout(nav_bar)
+        nav_layout.setContentsMargins(10, 0, 10, 4)
+        nav_layout.setSpacing(6)
+        nav_layout.addStretch()
+
+        self._prev_btn = QPushButton("◀ Poprzednia")
+        self._prev_btn.setCursor(Qt.CursorShape.ArrowCursor)
+        self._prev_btn.setMinimumWidth(106)
+        self._prev_btn.setStyleSheet(
+            _btn_style(
+                "#fff", "rgba(80,80,80,0.15)", "rgba(120,120,120,0.35)",
+                "rgba(100,100,100,0.25)", "rgba(120,120,120,0.35)",
+            )
+        )
+        self._prev_btn.clicked.connect(self._show_previous_response)
+        nav_layout.addWidget(self._prev_btn)
+
+        self._history_label = QLabel("0/0")
+        self._history_label.setStyleSheet(
+            "color: rgba(255,255,255,0.55); font-size: 11px; min-width: 42px;"
+        )
+        self._history_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        nav_layout.addWidget(self._history_label)
+
+        self._next_btn = QPushButton("Następna ▶")
+        self._next_btn.setCursor(Qt.CursorShape.ArrowCursor)
+        self._next_btn.setMinimumWidth(106)
+        self._next_btn.setStyleSheet(
+            _btn_style(
+                "#fff", "rgba(80,80,80,0.15)", "rgba(120,120,120,0.35)",
+                "rgba(100,100,100,0.25)", "rgba(120,120,120,0.35)",
+            )
+        )
+        self._next_btn.clicked.connect(self._show_next_response)
+        nav_layout.addWidget(self._next_btn)
 
         # ----- Response area -----
         self._response_area = QTextEdit()
@@ -375,6 +426,7 @@ class AssistantWindow(QWidget):
         container_layout.setSpacing(0)
         container_layout.addWidget(title_bar)
         container_layout.addWidget(btn_bar)
+        container_layout.addWidget(nav_bar)
         container_layout.addWidget(self._response_area)
 
         # Custom resize handle drawn perfectly at the corner
@@ -393,6 +445,7 @@ class AssistantWindow(QWidget):
         outer.addWidget(self._container)
 
         self.resize(520, 460)
+        self._update_history_nav()
 
     def _set_container_border(self, color: str) -> None:
         self._container.setStyleSheet(
@@ -494,30 +547,86 @@ class AssistantWindow(QWidget):
     # Public helpers
     # ------------------------------------------------------------------
 
-    def set_loading(self, loading: bool) -> None:
-        if loading:
-            self._mode_dot.setStyleSheet("color: #ffaa00; font-size: 10px;")
-            self._status_label.setText("⏳ Analizuję… (kliknij 'Anuluj' by przerwać)")
-            self._response_area.setPlainText("")
-            self._voice_btn.setText("❌ Anuluj")
-            self._solve_btn.setEnabled(False)
-        else:
-            self._status_label.setText("")
-            self._voice_btn.setText("🎙️ Start nasłuchiwanie")
-            self._solve_btn.setEnabled(True)
+    def _set_token_info(self, info: str) -> None:
+        value = (info or "").strip()
+        self._token_label.setToolTip(value)
+        if not value:
+            self._token_label.setText("")
+            return
 
-    def set_response(self, text: str, info: str = "") -> None:
+        max_len = 28
+        compact = value if len(value) <= max_len else (value[: max_len - 3] + "...")
+        self._token_label.setText(compact)
+
+    def _render_markdown(self, text: str) -> None:
         self._raw_markdown = text
-        self._status_label.setText("")
-        if info:
-            self._token_label.setText(info)
-        
-        # Convert Markdown with code highlighting to HTML
         html_content = markdown.markdown(
             self._raw_markdown, extensions=['fenced_code', 'codehilite', 'tables']
         )
         full_html = f"<html><head>{self.base_html_style}</head><body>{html_content}</body></html>"
         self._response_area.setHtml(full_html)
+
+    def _update_history_nav(self) -> None:
+        total = len(self._response_history)
+        if total <= 0 or self._history_index < 0:
+            self._history_label.setText("0/0")
+            self._prev_btn.setEnabled(False)
+            self._next_btn.setEnabled(False)
+            return
+
+        self._history_label.setText(f"{self._history_index + 1}/{total}")
+        self._prev_btn.setEnabled(self._history_index > 0)
+        self._next_btn.setEnabled(self._history_index < (total - 1))
+
+    def _show_history_entry(self, index: int) -> None:
+        if index < 0 or index >= len(self._response_history):
+            return
+
+        self._history_index = index
+        entry = self._response_history[index]
+        self._set_token_info(entry.get("info", ""))
+        self._render_markdown(entry.get("text", ""))
+        self._update_history_nav()
+
+        scrollbar = self._response_area.verticalScrollBar()
+        scrollbar.setValue(scrollbar.minimum())
+
+    def _store_response(self, text: str, info: str = "") -> None:
+        entry = {"text": text, "info": info}
+        if self._response_history and self._response_history[-1] == entry:
+            self._show_history_entry(len(self._response_history) - 1)
+            return
+
+        self._response_history.append(entry)
+        if len(self._response_history) > 25:
+            self._response_history = self._response_history[-25:]
+        self._show_history_entry(len(self._response_history) - 1)
+
+    def _show_previous_response(self) -> None:
+        if self._history_index > 0:
+            self._show_history_entry(self._history_index - 1)
+
+    def _show_next_response(self) -> None:
+        if self._history_index < (len(self._response_history) - 1):
+            self._show_history_entry(self._history_index + 1)
+
+    def set_loading(self, loading: bool) -> None:
+        if loading:
+            self._mode_dot.setStyleSheet("color: #ffaa00; font-size: 10px;")
+            self._status_label.setText("⏳ Analizuję… (kliknij 'Anuluj' by przerwać)")
+            self._voice_btn.setText("❌ Anuluj")
+            self._solve_btn.setEnabled(False)
+            self._prev_btn.setEnabled(False)
+            self._next_btn.setEnabled(False)
+        else:
+            self._status_label.setText("")
+            self._voice_btn.setText("🎙️ Start nasłuchiwanie")
+            self._solve_btn.setEnabled(True)
+            self._update_history_nav()
+
+    def set_response(self, text: str, info: str = "") -> None:
+        self._status_label.setText("")
+        self._store_response(text, info)
 
     # ---- Voice mode ----
 
@@ -534,16 +643,11 @@ class AssistantWindow(QWidget):
             self._set_container_border("rgba(100, 108, 255, 0.4)")
 
     def append_voice_text(self, text: str) -> None:
-        # We replace the content entirely for the current turn to avoid scrolling issues.
-        self._raw_markdown = text
-        
-        # Convert Markdown with code highlighting to HTML
-        html_content = markdown.markdown(
-            self._raw_markdown, extensions=['fenced_code', 'codehilite', 'tables']
-        )
-        full_html = f"<html><head>{self.base_html_style}</head><body>{html_content}</body></html>"
-        self._response_area.setHtml(full_html)
-        
-        # Scroll to bottom
+        compact = " ".join(part.strip() for part in text.splitlines() if part.strip())
+        if len(compact) > 140:
+            compact = compact[:137] + "..."
+        self._status_label.setText(compact)
+        self._render_markdown(text)
+
         scrollbar = self._response_area.verticalScrollBar()
-        scrollbar.setValue(scrollbar.maximum())
+        scrollbar.setValue(scrollbar.minimum())

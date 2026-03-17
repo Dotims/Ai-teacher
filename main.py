@@ -4,8 +4,8 @@ main.py – Application entry point.
 Boots the PyQt6 app, registers global hotkeys, and orchestrates:
   • Ctrl+Alt+S / [Rozwiąż z ekranu] → screenshot → GPT-4o → display
   • Ctrl+Alt+A / [Start/Stop]       → start audio recording / stop recording 
-                                      → transcribe (Whisper) -> capture screen 
-                                      → GPT-4o → display
+                                                                            → transcribe (Whisper)
+                                                                            → GPT-4o (transkrypcja-only) → display
 """
 
 import os
@@ -13,17 +13,8 @@ import sys
 import threading
 import traceback
 import time
-import warnings
 import re
 from collections import Counter
-
-# Filter soundcard data discontinuity warning
-warnings.filterwarnings("ignore", category=UserWarning, module="soundcard")
-try:
-    from soundcard import SoundcardRuntimeWarning
-    warnings.filterwarnings("ignore", category=SoundcardRuntimeWarning)
-except ImportError:
-    pass
 
 # Force UTF-8 for console output to avoid cp1250 UnicodeEncodeError on Windows
 if not sys.stdout.encoding or sys.stdout.encoding.lower() != 'utf-8':
@@ -36,7 +27,7 @@ import keyboard
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 from ai_service import (
     analyze_screenshot,
-    analyze_screenshot_with_context,
+    analyze_transcript_only,
     get_runtime_models,
     preload_transcriber,
     transcribe_audio
@@ -107,6 +98,34 @@ def _is_meaningful_transcript(text: str) -> bool:
         return False
 
     return True
+
+
+def _compose_audio_panel(transcript: str, answer: str | None = None, fallback: bool = False) -> str:
+    """Format transcript and answer into one readable panel."""
+    cleaned_transcript = (transcript or "").strip()
+    transcript_block = cleaned_transcript if cleaned_transcript else "_Brak rozpoznanej mowy._"
+
+    if answer is None:
+        answer_block = (
+            "_Generuję odpowiedź na podstawie transkrypcji..._"
+            if cleaned_transcript
+            else "_Brak odpowiedzi, bo nie wykryto transkrypcji._"
+        )
+    else:
+        answer_block = answer.strip() or "_Model nie zwrócił treści odpowiedzi._"
+
+    header = "⚠️ Whisper nie wykrył użytecznej mowy."
+    if cleaned_transcript and not fallback:
+        header = "🗣️ Wykryta transkrypcja"
+    elif fallback:
+        header = "⚠️ Brak transkrypcji audio"
+
+    return (
+        f"{header}\n\n"
+        f"### Transkrypcja\n\n{transcript_block}\n\n"
+        f"---\n\n"
+        f"### Odpowiedź\n\n{answer_block}"
+    )
 
 
 # ------------------------------------------------------------------
@@ -218,29 +237,25 @@ class _WorkflowManager:
                 self._bridge.voice_active.emit(False)
                 self._bridge.show_loading.emit()
                 self._bridge.voice_text.emit("⏳ Przetwarzam nagranie...")
-                
-                # 1. Capture Screen immediately
-                print("📷 Przechwytywanie ekranu...")
-                screenshot_bytes = capture_screen()
 
-                # 2. Transcribe audio
+                # 1. Transcribe audio (audio-only fast path)
                 if task_id != self._current_task_id: return
-                self._bridge.voice_text.emit("📝 Trwa transkrypcja audio (Whisper)...")
+                self._bridge.voice_text.emit(
+                    "### Transkrypcja\n\n_Trwa transkrypcja audio (Whisper)..._\n\n---\n\n### Odpowiedź\n\n_Oczekiwanie na transkrypcję..._"
+                )
                 print("📝 Transkrypcja audio...")
                 transcript = transcribe_audio(wav_path)
                 print(f"[Whisper] Transkrypt: '{transcript}'")
                 
                 if task_id != self._current_task_id: return
                 if transcript.strip():
-                    self._bridge.voice_text.emit(f"🗣️ Rekruter: {transcript}\n\n🌐 Wysyłam pytanie i ekran do modelu...")
-                    print("🤖 Wysyłanie zapytania do modelu (z kontekstem audio)...")
-                    answer, info = analyze_screenshot_with_context(screenshot_bytes, transcript, prompt_type)
-                    response_text = f"🗣️ Transkrypcja: {transcript}\n\n---\n{answer}"
+                    self._bridge.voice_text.emit(_compose_audio_panel(transcript))
+                    print("🤖 Wysyłanie zapytania do modelu (transkrypcja-only)...")
+                    answer, info = analyze_transcript_only(transcript, prompt_type)
+                    response_text = _compose_audio_panel(transcript, answer=answer)
                 else:
-                    self._bridge.voice_text.emit("⚠️ Brak transkrypcji mowy. Wysyłam sam zrzut ekranu...")
-                    print("⚠️ Brak transkrypcji. Fallback do analizy samego ekranu...")
-                    answer, info = analyze_screenshot(screenshot_bytes, prompt_type)
-                    response_text = "⚠️ Brak rozpoznanej mowy – odpowiedź na podstawie ekranu.\n\n---\n" + answer
+                    info = ""
+                    response_text = _compose_audio_panel("", answer=None, fallback=True)
                 
                 if task_id != self._current_task_id: return
                 self._bridge.result_ready.emit(response_text, info)
@@ -290,7 +305,6 @@ def main() -> None:
         lambda active: (
             window.show() if active else None,
             window.set_voice_active(active),
-            window._response_area.setPlainText("") if active else None,
         )
     )
     bridge.voice_text.connect(lambda text: window.append_voice_text(text))
