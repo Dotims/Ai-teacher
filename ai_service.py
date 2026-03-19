@@ -586,7 +586,20 @@ _USER_PROMPTS = {
         "Rozwój: React Native, React Query, Redux.\n"
         "Jeśli rekruter pyta o coś z CV, buduj spójną 'swoją' historię. Pamiętaj: to Twój życiorys."
     ),
-    "technical": "Wyczerpująco wyjaśnij techniczne zagadnienie z pytania rekrutera. Zamiast krótkiej odpowiedzi, wyczerp temat – zacznij od najważniejszych kwestii, a następnie rozbuduj odpowiedź o detale merytoryczne. Używaj poprawnej terminologii IT, pokaż głębokie zrozumienie tematu i odpowiadaj w tym samym języku, w którym padło pytanie: po polsku dla polskiego pytania, po angielsku dla angielskiego.",
+    "technical": (
+        "Pytanie techniczne z rozmowy rekrutacyjnej. Wygeneruj odpowiedź TAK JAKBYM JA JĄ MÓWIŁ rekruterowi — naturalnie, swoimi słowami, pewnie.\n"
+        "NIE pisz definicji, NIE pisz jak z podręcznika, NIE wyliczaj punktów encyklopedycznie.\n"
+        "Odpowiedz jak inżynier, który naprawdę rozumie temat i opowiada o nim w rozmowie: konkretnie, z przykładami z praktyki, 5-10 zdań.\n"
+        "Jeśli temat wymaga porównania (np. REST vs GraphQL), pokaż że wiesz, kiedy co wybrać i dlaczego — jak ktoś kto to robił w praktyce.\n"
+        "Język: odpowiadaj w tym samym języku w którym padło pytanie."
+    ),
+    "technical_screen": (
+        "Pytanie techniczne / zadanie kodowe z ekranu. "
+        "Jeśli na zrzucie ekranu widać zadanie kodowe — NAJPIERW podaj gotowy kod rozwiązania (domyślnie JavaScript, TypeScript tylko gdy wymagany). "
+        "Pod kodem wyjaśnij logikę działania, złożoność i edge case'y.\n"
+        "Jeśli to pytanie teoretyczne — odpowiedz naturalnie, jak kandydat w rozmowie, nie jak encyklopedia.\n"
+        "Język: odpowiadaj w języku pytania."
+    ),
     "live_coding": "Live coding. Rozwiąż zadanie ze zdjęcia. Domyślnie podaj kod w JavaScript na samym początku odpowiedzi. Użyj TypeScript tylko wtedy, gdy treść zadania jasno wymaga TypeScript albo wejściowy kod jest już w TypeScript. Kod ma być napisany naturalnie i czytelnie, jak podczas prawdziwej rozmowy o pracę. Następnie pod spodem wyjaśnij logikę działania, podaj złożoność czasową i pamięciową oraz wskaż przypadki brzegowe. Część opisową napisz w tym samym języku, w którym jest pytanie: po polsku dla polskiego pytania, po angielsku dla angielskiego."
 }
 
@@ -868,7 +881,9 @@ def analyze_screenshot(image_bytes: bytes, prompt_type: str = "live_coding", for
     start = time.perf_counter()
     github_client = _get_github_client()
     b64_img = base64.b64encode(image_bytes).decode('utf-8')
-    selected_prompt = _USER_PROMPTS.get(prompt_type, _USER_PROMPTS["live_coding"])
+    # For screenshot analysis, use the screen-specific variant of technical prompt
+    effective_type = "technical_screen" if prompt_type == "technical" else prompt_type
+    selected_prompt = _USER_PROMPTS.get(effective_type, _USER_PROMPTS["live_coding"])
     extra_context = _contextual_hr_directive(prompt_type)
     
     # Add screenshot-specific instruction so the model analyzes what's visible on screen
@@ -985,7 +1000,9 @@ def analyze_screenshot_with_context(
     start = time.perf_counter()
     github_client = _get_github_client()
     b64_img = base64.b64encode(image_bytes).decode('utf-8')
-    selected_prompt = _USER_PROMPTS.get(prompt_type, _USER_PROMPTS["live_coding"])
+    # For screenshot+context analysis, use the screen-specific variant of technical prompt
+    effective_type = "technical_screen" if prompt_type == "technical" else prompt_type
+    selected_prompt = _USER_PROMPTS.get(effective_type, _USER_PROMPTS["live_coding"])
     preferred_lang = forced_language or _detect_response_language_from_transcript(audio_transcript)
     language_directive = _language_directive(audio_transcript, forced_language=preferred_lang)
     extra_context = _contextual_hr_directive(prompt_type, audio_transcript)

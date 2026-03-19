@@ -23,6 +23,7 @@ from PyQt6.QtWidgets import (
     QComboBox,
     QDialog,
     QLineEdit,
+    QSizePolicy,
 )
 import random
 
@@ -149,12 +150,16 @@ class AssistantWindow(QWidget):
     stealth_toggled = pyqtSignal(bool)  # True = stealth ON
     language_override_changed = pyqtSignal(str)  # "auto", "pl", "en"
 
+    _DEFAULT_FONT_SIZE = 14.5
+
     def __init__(self) -> None:
         super().__init__()
 
         self._stealth_on = True  # stealth enabled by default
         self._response_history: list[dict[str, str]] = []
         self._history_index = -1
+        self._font_size: float = self._DEFAULT_FONT_SIZE
+        self._collapsed = False  # minimize state
 
         self.setWindowFlags(
             Qt.WindowType.FramelessWindowHint
@@ -252,7 +257,48 @@ class AssistantWindow(QWidget):
         """)
         self.lang_combo.currentIndexChanged.connect(self._on_lang_changed)
         title_layout.addWidget(self.lang_combo)
-        
+
+        # ----- Font size controls -----
+        _fs_btn_css = """
+            QPushButton {
+                color: rgba(255,255,255,0.45);
+                background: transparent;
+                border: 1px solid rgba(255,255,255,0.12);
+                border-radius: 4px;
+                font-size: 11px;
+                font-weight: 600;
+                padding: 1px 5px;
+            }
+            QPushButton:hover {
+                color: rgba(255,255,255,0.85);
+                background: rgba(255,255,255,0.08);
+            }
+        """
+
+        fs_minus = QPushButton("A−")
+        fs_minus.setFixedSize(26, 22)
+        fs_minus.setCursor(Qt.CursorShape.ArrowCursor)
+        fs_minus.setStyleSheet(_fs_btn_css)
+        fs_minus.setToolTip("Zmniejsz czcionkę")
+        fs_minus.clicked.connect(lambda: self._change_font_size(-1))
+        title_layout.addWidget(fs_minus)
+
+        fs_reset = QPushButton("A")
+        fs_reset.setFixedSize(22, 22)
+        fs_reset.setCursor(Qt.CursorShape.ArrowCursor)
+        fs_reset.setStyleSheet(_fs_btn_css)
+        fs_reset.setToolTip("Domyślny rozmiar czcionki")
+        fs_reset.clicked.connect(lambda: self._change_font_size(0, reset=True))
+        title_layout.addWidget(fs_reset)
+
+        fs_plus = QPushButton("A+")
+        fs_plus.setFixedSize(26, 22)
+        fs_plus.setCursor(Qt.CursorShape.ArrowCursor)
+        fs_plus.setStyleSheet(_fs_btn_css)
+        fs_plus.setToolTip("Zwiększ czcionkę")
+        fs_plus.clicked.connect(lambda: self._change_font_size(1))
+        title_layout.addWidget(fs_plus)
+
         # ----- Token Info Label -----
         self._token_label = QLabel("")
         self._token_label.setStyleSheet("color: rgba(255,255,255,0.4); font-size: 10px; padding-right: 10px;")
@@ -268,8 +314,33 @@ class AssistantWindow(QWidget):
             "color: rgba(255,255,255,0.45); font-size: 11px;"
         )
         self._status_label.setMaximumWidth(260)
+        self._status_label.setSizePolicy(
+            QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred
+        )
         self._status_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         title_layout.addWidget(self._status_label)
+
+        # Minimize button
+        minimize_btn = QPushButton("─")
+        minimize_btn.setFixedSize(24, 24)
+        minimize_btn.setCursor(Qt.CursorShape.ArrowCursor)
+        minimize_btn.setStyleSheet(
+            """
+            QPushButton {
+                color: rgba(255,255,255,0.5);
+                background: transparent;
+                border: none;
+                font-size: 14px;
+                border-radius: 12px;
+            }
+            QPushButton:hover {
+                color: #646cff;
+                background: rgba(100,108,255,0.15);
+            }
+            """
+        )
+        minimize_btn.clicked.connect(self._on_minimize_toggle)
+        title_layout.addWidget(minimize_btn)
 
         close_btn = QPushButton("✕")
         close_btn.setFixedSize(24, 24)
@@ -289,13 +360,13 @@ class AssistantWindow(QWidget):
             }
             """
         )
-        close_btn.clicked.connect(self.hide)
+        close_btn.clicked.connect(self._on_close_click)
         title_layout.addWidget(close_btn)
 
         # ----- Button bar -----
-        btn_bar = QWidget()
-        btn_bar.setStyleSheet("background: transparent;")
-        btn_layout = QHBoxLayout(btn_bar)
+        self._btn_bar = QWidget()
+        self._btn_bar.setStyleSheet("background: transparent;")
+        btn_layout = QHBoxLayout(self._btn_bar)
         btn_layout.setContentsMargins(10, 2, 10, 4)
         btn_layout.setSpacing(6)
 
@@ -339,9 +410,9 @@ class AssistantWindow(QWidget):
         btn_layout.addWidget(self._stealth_btn)
 
         # ----- Response history navigation -----
-        nav_bar = QWidget()
-        nav_bar.setStyleSheet("background: transparent;")
-        nav_layout = QHBoxLayout(nav_bar)
+        self._nav_bar = QWidget()
+        self._nav_bar.setStyleSheet("background: transparent;")
+        nav_layout = QHBoxLayout(self._nav_bar)
         nav_layout.setContentsMargins(10, 0, 10, 4)
         nav_layout.setSpacing(6)
         nav_layout.addStretch()
@@ -382,45 +453,14 @@ class AssistantWindow(QWidget):
         self._response_area.setReadOnly(True)
         self._response_area.setFont(QFont("Consolas", 10))
         self._response_area.viewport().setCursor(Qt.CursorShape.ArrowCursor)
+        # Prevent content from expanding the window width
+        self._response_area.setLineWrapMode(QTextEdit.LineWrapMode.WidgetWidth)
+        self._response_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._response_area.setSizePolicy(
+            QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Expanding
+        )
         # Generate Pygments CSS for dark style (e.g., 'monokai')
-        pygments_css = HtmlFormatter(style='monokai').get_style_defs('.codehilite')
-        
-        self.base_html_style = f"""
-        <style>
-            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
-            body {{
-                font-family: 'Inter', "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
-                font-size: 14.5px;
-                color: rgba(255, 255, 255, 0.95);
-                line-height: 1.65;
-                padding: 6px;
-                font-weight: 500;
-            }}
-            code {{
-                background-color: rgba(0,0,0,0.4);
-                border-radius: 4px;
-                padding: 3px 6px;
-                font-family: 'JetBrains Mono', Consolas, monospace;
-                font-size: 13.5px;
-                color: #ff7b72;
-                font-weight: 500;
-            }}
-            pre {{
-                background-color: rgba(16,16,20,0.95);
-                border-radius: 8px;
-                padding: 12px;
-                border: 1px solid rgba(255,255,255,0.15);
-                box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-            }}
-            pre code {{
-                background-color: transparent;
-                padding: 0;
-                color: inherit;
-                font-weight: normal;
-            }}
-            {pygments_css}
-        </style>
-        """
+        self._pygments_css = HtmlFormatter(style='monokai').get_style_defs('.codehilite')
 
         self._response_area.setStyleSheet(
             """
@@ -453,20 +493,20 @@ class AssistantWindow(QWidget):
         container_layout.setContentsMargins(0, 0, 0, 0)
         container_layout.setSpacing(0)
         container_layout.addWidget(title_bar)
-        container_layout.addWidget(btn_bar)
-        container_layout.addWidget(nav_bar)
+        container_layout.addWidget(self._btn_bar)
+        container_layout.addWidget(self._nav_bar)
         container_layout.addWidget(self._response_area)
 
         # Custom resize handle drawn perfectly at the corner
-        handle_layout = QHBoxLayout()
+        self._handle_widget = QWidget()
+        handle_layout = QHBoxLayout(self._handle_widget)
         handle_layout.setContentsMargins(0, 0, 4, 4)
         handle_layout.addStretch()
         self._resize_handle = QLabel("↘")
         self._resize_handle.setStyleSheet("color: rgba(255,255,255,0.25); font-size: 14px;")
-        # Cursor transparent to avoid Windows resize icon override
         self._resize_handle.setCursor(Qt.CursorShape.ArrowCursor)
         handle_layout.addWidget(self._resize_handle)
-        container_layout.addLayout(handle_layout)
+        container_layout.addWidget(self._handle_widget)
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(12, 12, 12, 12)
@@ -542,6 +582,26 @@ class AssistantWindow(QWidget):
             self._apply_display_affinity(WDA_NONE)
         self.stealth_toggled.emit(self._stealth_on)
 
+    def _on_close_click(self) -> None:
+        """Close with PIN confirmation to prevent accidental clicks."""
+        dialog = StealthConfirmDialog(self)
+        dialog.move(self.geometry().center() - dialog.rect().center())
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self.hide()
+
+    def _on_minimize_toggle(self) -> None:
+        """Toggle collapse: hide response area, button bar, nav bar, resize handle."""
+        self._collapsed = not self._collapsed
+        for widget in (self._btn_bar, self._nav_bar, self._response_area, self._handle_widget):
+            widget.setVisible(not self._collapsed)
+
+        if self._collapsed:
+            self._saved_size = self.size()
+            self.resize(self.width(), 52)
+        else:
+            if hasattr(self, '_saved_size'):
+                self.resize(self._saved_size)
+
     # ------------------------------------------------------------------
     # Dragging & Custom Resizing
     # ------------------------------------------------------------------
@@ -571,6 +631,17 @@ class AssistantWindow(QWidget):
         self._drag_pos = None
         self._resizing = False
 
+    def wheelEvent(self, event) -> None:
+        if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+            delta = event.angleDelta().y()
+            if delta > 0:
+                self._change_font_size(1)
+            elif delta < 0:
+                self._change_font_size(-1)
+            event.accept()
+        else:
+            super().wheelEvent(event)
+
     # ------------------------------------------------------------------
     # Public helpers
     # ------------------------------------------------------------------
@@ -586,12 +657,62 @@ class AssistantWindow(QWidget):
         compact = value if len(value) <= max_len else (value[: max_len - 3] + "...")
         self._token_label.setText(compact)
 
+    def _build_html_style(self) -> str:
+        fs = self._font_size
+        code_fs = fs - 1
+        return f"""
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+            body {{
+                font-family: 'Inter', "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+                font-size: {fs}px;
+                color: rgba(255, 255, 255, 0.95);
+                line-height: 1.65;
+                padding: 6px;
+                font-weight: 500;
+            }}
+            code {{
+                background-color: rgba(0,0,0,0.4);
+                border-radius: 4px;
+                padding: 3px 6px;
+                font-family: 'JetBrains Mono', Consolas, monospace;
+                font-size: {code_fs}px;
+                color: #ff7b72;
+                font-weight: 500;
+            }}
+            pre {{
+                background-color: rgba(16,16,20,0.95);
+                border-radius: 8px;
+                padding: 12px;
+                border: 1px solid rgba(255,255,255,0.15);
+                box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            }}
+            pre code {{
+                background-color: transparent;
+                padding: 0;
+                color: inherit;
+                font-weight: normal;
+            }}
+            {self._pygments_css}
+        </style>
+        """
+
+    def _change_font_size(self, delta: float, *, reset: bool = False) -> None:
+        if reset:
+            self._font_size = self._DEFAULT_FONT_SIZE
+        else:
+            self._font_size = max(10, min(24, self._font_size + delta))
+        # Re-render current content with new font size
+        if hasattr(self, '_raw_markdown'):
+            self._render_markdown(self._raw_markdown)
+
     def _render_markdown(self, text: str) -> None:
         self._raw_markdown = text
         html_content = markdown.markdown(
             self._raw_markdown, extensions=['fenced_code', 'codehilite', 'tables']
         )
-        full_html = f"<html><head>{self.base_html_style}</head><body>{html_content}</body></html>"
+        style = self._build_html_style()
+        full_html = f"<html><head>{style}</head><body>{html_content}</body></html>"
         self._response_area.setHtml(full_html)
 
     def _update_history_nav(self) -> None:
