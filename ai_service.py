@@ -124,10 +124,19 @@ _WHISPER_ENABLE_RESCUE = _env_bool("WHISPER_ENABLE_RESCUE", False)
 _WHISPER_INITIAL_VAD_FILTER = _env_bool("WHISPER_INITIAL_VAD_FILTER", True)
 _WHISPER_STRONG_BEAM_SIZE = max(1, _env_int("WHISPER_STRONG_BEAM_SIZE", 3))
 _WHISPER_STRONG_BEST_OF = max(1, _env_int("WHISPER_STRONG_BEST_OF", 3))
+_WHISPER_PREFER_AUTO_LANGUAGE = _env_bool("WHISPER_PREFER_AUTO_LANGUAGE", True)
 _WHISPER_USE_INITIAL_PROMPT = _env_bool("WHISPER_USE_INITIAL_PROMPT", True)
 _WHISPER_INITIAL_PROMPT = _env_str(
     "WHISPER_INITIAL_PROMPT",
-    "React, React Native, Virtual DOM, TypeScript, JavaScript, Next.js, Node.js, Redux, GraphQL, hooks, components, state, props",
+    "React, React Native, React Query, Vue, Angular, Svelte, Node.js, Next.js, Nuxt, NestJS, Express, "
+    "Redux, Redux Toolkit, Tailwind CSS, Bootstrap, Sass, JavaScript, TypeScript, JSON, HTML, CSS, "
+    "DOM, Virtual DOM, Cache, Hoisting, Closure, Promise, Async, Await, Boolean, String, Integer, Array, Object, "
+    "Mock, Stub, Spy, Merge, Rebase, Fetch, Axios, API, REST, GraphQL, Webhook, Endpoint, Middleware, "
+    "GitHub, GitLab, Git, Docker, Kubernetes, AWS, Azure, CI/CD, Agile, Scrum, Kanban, Sprint, "
+    "Component, Hook, useEffect, useState, Props, State, Render, Debug, Refactor, Repository, Commit, Push, Pull Request, "
+    "Frontend, Backend, Fullstack, DevOps, Vite, C#, C++, PHP, SQL, WordPress, WooCommerce, Postman, Python, n8n, "
+    "Airtable, ClickUp, SMTP, .NET, Entity Framework Core, OAuth, JWT, Manifest V3, Three.js, "
+    "Supabase, Row Level Security, PostgreSQL, PostGIS, Zustand, shadcn/ui, Software Mansion, meet.js",
 )
 _WHISPER_TECH_TERM_REWRITE = _env_bool("WHISPER_TECH_TERM_REWRITE", True)
 _WHISPER_MIXED_QUICK_RETRY = _env_bool("WHISPER_MIXED_QUICK_RETRY", True)
@@ -138,40 +147,108 @@ _whisper_rescue_load_error = None
 
 
 _TECH_TERMS = (
-    "react",
-    "react native",
-    "virtual",
-    "virtual dom",
-    "typescript",
-    "javascript",
-    "next.js",
-    "node.js",
-    "redux",
-    "graphql",
-    "zustand",
-    "hooks",
-    "component",
-    "components",
+    # Frameworks & Libraries
+    "react", "react native", "react query", "vue", "angular", "svelte",
+    "next.js", "nuxt", "nestjs", "express", "node.js", "vite",
+    "redux", "redux toolkit", "zustand", "graphql", "three.js",
+    "tailwind", "tailwind css", "bootstrap", "sass", "shadcn",
+    # Languages & Core
+    "javascript", "typescript", "json", "html", "css", "sql", "php",
+    "python", "c#", "c++",
+    # JS Concepts
+    "dom", "virtual dom", "cache", "hoisting", "closure", "promise",
+    "async", "await", "boolean", "string", "integer", "array", "object",
+    "hooks", "component", "components", "props", "state", "render",
+    "useeffect", "usestate",
+    # Testing
+    "mock", "stub", "spy",
+    # Git & DevOps
+    "git", "github", "gitlab", "merge", "rebase", "fetch", "commit",
+    "push", "pull request", "repository", "docker", "kubernetes",
+    "aws", "azure", "ci/cd", "devops",
+    # API & Networking
+    "api", "rest", "webhook", "endpoint", "middleware", "axios",
+    "postman", "smtp", "oauth", "jwt", "rpc",
+    # Roles & Methodology
+    "frontend", "backend", "fullstack", "agile", "scrum", "kanban", "sprint",
+    "debug", "refactor",
+    # Platforms & Tools
+    "wordpress", "woocommerce", "n8n", "airtable", "clickup",
+    ".net", "entity framework", "manifest v3", "supabase",
+    # Database / PostGIS
+    "postgresql", "postgis", "geography", "point",
+    "st_intersects", "gist", "st_distance", "knn", "offset",
+    "supercluster", "st_clusterdbscan", "centroid",
+    "row level security",
+    # Other
+    "software mansion", "meet.js",
 )
 
 
 _PHONETIC_TECH_REPLACEMENTS = (
+    # Virtual DOM
     (r"\bwitu[\s-]*al\b", "virtual"),
     (r"\bwirtu[\s-]*al\b", "virtual"),
     (r"\bwiertu[\s-]*al\b", "virtual"),
-    (r"\bri?akt\b", "React"),
+    # React / React Native
     (r"\bri?akt[\s-]*nativ[e]?\b", "React Native"),
+    (r"\bri?akt[\s-]*kwer[iy]?\b", "React Query"),
+    (r"\bri?akt\b", "React"),
+    # TypeScript / JavaScript
     (r"\btaip[\s-]*skript\b", "TypeScript"),
     (r"\btype[\s-]*skript\b", "TypeScript"),
     (r"\btypeskript\b", "TypeScript"),
     (r"\bjava[\s-]*skript\b", "JavaScript"),
     (r"\bd(?:z|ż)awa[\s-]*skript\b", "JavaScript"),
+    # Next.js / Node.js / Nuxt / NestJS
     (r"\bnext[\s-]*(?:js|d(?:z|ż)e?js)\b", "Next.js"),
     (r"\bnekst[\s-]*(?:js|d(?:z|ż)e?js)\b", "Next.js"),
     (r"\bnode[\s-]*(?:js|d(?:z|ż)e?js)\b", "Node.js"),
     (r"\bnod[\s-]*(?:js|d(?:z|ż)e?js)\b", "Node.js"),
+    (r"\bnakst\b", "Nuxt"),
+    (r"\bnest[\s-]*(?:js|d(?:z|ż)e?js)\b", "NestJS"),
+    # GraphQL / Redux / Zustand
     (r"\bgrap[\s-]*(?:kiu?el|ql)\b", "GraphQL"),
     (r"\bredaks\b", "Redux"),
+    (r"\bz[ui]stand\b", "Zustand"),
+    # Vue / Angular / Svelte
+    (r"\bbju\b", "Vue"),
+    (r"\bangu?lar\b", "Angular"),
+    (r"\bswelt[e]?\b", "Svelte"),
+    # Tailwind / Bootstrap / Sass
+    (r"\btejl[\s-]*(?:w[iy]nd|łind)\b", "Tailwind"),
+    (r"\bbutstrap\b", "Bootstrap"),
+    # Docker / Kubernetes / AWS / Azure
+    (r"\bdoker\b", "Docker"),
+    (r"\bkubernitis\b", "Kubernetes"),
+    (r"\bkubernetes\b", "Kubernetes"),
+    # Axios / Postman
+    (r"\baksios\b", "Axios"),
+    (r"\bpostmen\b", "Postman"),
+    # Agile / Scrum / Kanban
+    (r"\bskram\b", "Scrum"),
+    (r"\bkanban\b", "Kanban"),
+    (r"\bad(?:z|ż)ajl\b", "Agile"),
+    # WordPress / WooCommerce
+    (r"\błordpres\b", "WordPress"),
+    (r"\bwupres\b", "WordPress"),
+    (r"\bwukomers\b", "WooCommerce"),
+    # Supabase / PostgreSQL / PostGIS
+    (r"\bsupabejs\b", "Supabase"),
+    (r"\bpostgres\b", "PostgreSQL"),
+    (r"\bpostgis\b", "PostGIS"),
+    # Three.js / Vite
+    (r"\btri[\s-]*(?:js|d(?:z|ż)e?js)\b", "Three.js"),
+    (r"\bwajt\b", "Vite"),
+    (r"\bvajt\b", "Vite"),
+    # meet.js
+    (r"\bmit[\s-]*(?:js|d(?:z|ż)e?js)\b", "meet.js"),
+    # Software Mansion
+    (r"\bsoftwer[\s-]*men(?:sz|sh)[io]?n\b", "Software Mansion"),
+    # DevOps / Fullstack
+    (r"\bdevops\b", "DevOps"),
+    (r"\bfulstack\b", "Fullstack"),
+    (r"\bful[\s-]*stak\b", "Fullstack"),
 )
 
 
@@ -182,6 +259,19 @@ _PHONETIC_TECH_HINTS = (
     r"\btaip[\s-]*skript\b",
     r"\bjava[\s-]*skript\b",
     r"\bd(?:z|ż)e?js\b",
+    r"\baksios\b",
+    r"\bdoker\b",
+    r"\bkubernitis\b",
+    r"\bskram\b",
+    r"\bad(?:z|ż)ajl\b",
+    r"\bbju\b",
+    r"\bswelt\b",
+    r"\bnakst\b",
+    r"\bsupabejs\b",
+    r"\bwajt\b",
+    r"\bvajt\b",
+    r"\bsoftwer[\s-]*men\b",
+    r"\bfulstack\b",
 )
 
 
@@ -316,27 +406,32 @@ _SYSTEM_PROMPT = (
     "na podstawie słów rekrutera (audio) oraz zrzutów ekranu.\n\n"
     "Zasady komunikacji:\n"
     "- ZERO wstępów. Przechodź od razu do meritum.\n"
-    "- JĘZYK: Używaj wyłącznie polskiego albo angielskiego. Jeśli pytanie / transkrypcja / treść na ekranie jest po polsku, odpowiadaj po polsku. Jeśli jest po angielsku, odpowiadaj po angielsku. Nie mieszaj języków.\n"
-    "- KOD: Pisz w TypeScript. Generuj kod czytelny i realistyczny – unikaj przerośniętych optymalizacji.\n"
+    "- JĘZYK: Używaj wyłącznie polskiego albo angielskiego. "
+    "Jeśli rekruter ZACZYNA rozmowę po polsku i NAGLE przechodzi na angielski (lub odwrotnie), "
+    "wykryj język AKTUALNEGO pytania i odpowiedz TYLKO w tym języku. "
+    "Nie mieszaj języków w jednej odpowiedzi. "
+    "Jeśli transkrypcja zawiera oba języki, odpowiadaj w języku, w którym padło pytanie (ostatnia część transkrypcji).\n"
+    "- KOD: Domyślnie pisz w JavaScript (ES2022). Użyj TypeScript tylko wtedy, gdy zadanie wyraźnie tego wymaga albo wejściowy kod/projekt jest już w TypeScript.\n"
     "- TŁUMACZENIE WYJAŚNIEŃ: Pamiętaj, aby podawać wyjaśnienia w odpowiednim języku i tonie, zależnie od typu polecenia.\n"
     "- FORMAT: Używaj krótkich akapitów i wypunktowań, aby tekst był przejrzysty na małym nakładanym oknie."
 )
 
 
-def _detect_prompt_language(text: str) -> str | None:
+def _language_score_parts(text: str) -> tuple[int, int, int, int, int, int]:
     lowered = (text or "").strip().lower()
     if not lowered:
-        return None
+        return 0, 0, 0, 0, 0, 0
 
     tokens = re.findall(r"[a-ząćęłńóśźż']+", lowered, flags=re.IGNORECASE)
     if not tokens:
-        return None
+        return 0, 0, 0, 0, 0, 0
 
     polish_words = {
         "jak", "dlaczego", "co", "czy", "jakie", "opowiedz", "proszę", "projekt", "doświadczenie",
         "slabe", "mocne", "strony", "rekruter", "pytanie", "zespole", "pracowales", "czym",
         "rozni", "roznica", "wyjasnij", "odpowiedz", "miedzy", "poniewaz", "pomocy", "polsku",
         "jest", "sa", "oraz", "ktory", "ktore", "dlatego", "wlasnie",
+        "i", "w", "na", "od", "do", "sie", "to", "tego", "dla", "po", "ze", "tak",
     }
 
     english_words = {
@@ -358,7 +453,23 @@ def _detect_prompt_language(text: str) -> str | None:
 
     polish_diacritics = sum(ch in lowered for ch in "ąćęłńóśźż")
     polish_score = polish_hits * 2 + polish_diacritics * 2
-    english_score = english_hits * 2 + english_tech_hits * 3
+    english_score = english_hits * 2 + english_tech_hits * 2
+    return polish_score, english_score, english_tech_hits, polish_diacritics, polish_hits, english_hits
+
+
+def _tail_text_for_language(text: str, max_tokens: int = 24) -> str:
+    lowered = (text or "").strip().lower()
+    if not lowered:
+        return ""
+
+    tokens = re.findall(r"[a-ząćęłńóśźż']+", lowered, flags=re.IGNORECASE)
+    if not tokens:
+        return ""
+    return " ".join(tokens[-max_tokens:])
+
+
+def _detect_prompt_language(text: str) -> str | None:
+    polish_score, english_score, english_tech_hits, polish_diacritics, polish_hits, english_hits = _language_score_parts(text)
 
     if polish_score == 0 and english_score == 0:
         return None
@@ -380,8 +491,16 @@ def _detect_prompt_language(text: str) -> str | None:
     return None
 
 
-def _language_directive(context_text: str = "") -> str:
-    detected = _detect_prompt_language(context_text)
+def _detect_response_language_from_transcript(text: str) -> str | None:
+    """Prefer the language of the final part of transcript (where question usually ends)."""
+    tail_lang = _detect_prompt_language(_tail_text_for_language(text, max_tokens=26))
+    if tail_lang is not None:
+        return tail_lang
+    return _detect_prompt_language(text)
+
+
+def _language_directive(context_text: str = "", forced_language: str | None = None) -> str:
+    detected = forced_language or _detect_prompt_language(context_text)
     if detected == "pl":
         return "Odpowiedz wyłącznie po polsku."
     if detected == "en":
@@ -410,6 +529,8 @@ _HR_PERSONAL_NOTES = (
     "- Inspiracja po spotkaniu meet.js i rozmowach z ludzmi z branzy.\n"
     "- Trzon stacku: React, TypeScript, JavaScript; dodatkowo Next.js, GraphQL, Zustand, Tailwind, shadcn/ui.\n"
     "- Rozwoj: React Native, React Query, Redux.\n"
+    "- Doswiadczenie zawodowe: praca w firmach jako frontend/software developer (projekty B2B, e-commerce, automatyzacja).\n"
+    "- NIE WSPOMINAJ nazw projektow z CV (np. GrindVibe, USOS Bot, Stellar Journey) chyba ze rekruter wprost o nie zapyta.\n"
     "- Odpowiedzi maja brzmiec naturalnie i ustnie, bez przesadnie ksiazkowego stylu."
 )
 
@@ -418,11 +539,11 @@ def _contextual_hr_directive(prompt_type: str, transcript: str = "") -> str:
     if prompt_type != "hr":
         return ""
 
-    lang = _detect_prompt_language(transcript)
+    lang = _detect_response_language_from_transcript(transcript)
     if lang == "en":
-        style_line = "For English answers, keep a spoken B2/C1 level, 4-8 sentences, confident but natural."
+        style_line = "For English answers, keep a spoken B2/C1 level, 4-8 sentences, confident but natural. Avoid complex obscure words."
     elif lang == "pl":
-        style_line = "Dla odpowiedzi po polsku zachowaj naturalny, mówiony styl i konkret."
+        style_line = "Dla odpowiedzi po polsku zachowaj naturalny, mówiony styl i konkret. 4-8 zdań."
     else:
         style_line = (
             "Keep one language only: choose the dominant language from transcript terms. "
@@ -431,9 +552,12 @@ def _contextual_hr_directive(prompt_type: str, transcript: str = "") -> str:
 
     return (
         "Dodatkowe instrukcje HR:\n"
+        "- To jest ROZMOWA MIEKKA (soft interview) — odpowiadaj LUZNO i naturalnie, jak w normalnej rozmowie.\n"
         "- Nie kopiuj gotowych odpowiedzi slowo w slowo. Parafrazuj i rotuj argumenty.\n"
         "- W jednej odpowiedzi wspomnij maksymalnie 1-2 elementy z notatek firmy, tylko gdy sa trafne.\n"
-        "- Pokaz swiadomosc firmy i motywacji, ale bez nadmiernego strategicznego tonu.\n"
+        "- NIE wspominaj konkretnych nazw projektow z CV (GrindVibe, USOS Bot, Stellar Journey) chyba ze rekruter wprost o nie pyta.\n"
+        "- Mow ogolnie o doswiadczeniu (np. 'pracowalem przy projektach frontendowych', 'mialem okazje pracowac z React i TypeScript').\n"
+        "- Pokaz motywacje i zaangazowanie, ale BEZ sztywnego, strategicznego tonu.\n"
         f"- {style_line}\n\n"
         f"{_HR_COMPANY_NOTES}\n\n"
         f"{_HR_PERSONAL_NOTES}"
@@ -441,27 +565,29 @@ def _contextual_hr_directive(prompt_type: str, transcript: str = "") -> str:
 
 _USER_PROMPTS = {
     "hr": (
-        "Rozmowa HR. Wygeneruj naturalną, płynną odpowiedź na zadane w rozmowie pytanie. "
-        "BARDZO WAŻNA ZASADA ODNOŚNIE JĘZYKA: Twoja odpowiedź ZAWSZE musi być w języku, w jakim zostało zadane pytanie. "
-        "Jeżeli rekruter zadał pytanie po POLSKU - odpowiedz po POLSKU. "
-        "Jeżeli rekruter zmienił język i zadał pytanie po ANGIELSKU w celu sprawdzenia poziomu (lub cała rozmowa jest po angielsku) - odpowiedz po ANGIELSKU (poziom B2/C1). "
-        "Odpowiedź powinna brzmieć autentycznie, pokazując motywację i umiejętności miękkie. "
-        "BARDZO WAŻNE STANOWISKO - Odpowiadasz jako kandydat, o poniższym życiorysie (CV):\n"
+        "Rozmowa HR (rozmowa miękka). Wygeneruj naturalną, swobodną odpowiedź na pytanie rekrutera. "
+        "Ton: LUŹNY, jak w normalnej rozmowie — NIE sztywny, NIE formalny, NIE jak z podręcznika.\n"
+        "BARDZO WAŻNA ZASADA JĘZYKA: Twoja odpowiedź ZAWSZE musi być w języku aktualnego pytania. "
+        "Jeśli rekruter mówi po POLSKU — odpowiedz po POLSKU. "
+        "Jeśli rekruter przeszedł na ANGIELSKI — odpowiedz po ANGIELSKU (poziom B2/lekki C1, bez skomplikowanych słów).\n"
+        "Odpowiedź powinna brzmieć autentycznie i naturalnie, jak osoba naprawdę opowiadająca o sobie.\n\n"
+        "ZASADY:\n"
+        "- Maksymalnie 4-8 zdań, jak w normalnej rozmowie.\n"
+        "- NIE wspominaj z własnej inicjatywy nazw konkretnych projektów z CV (GrindVibe, USOS Bot, Stellar Journey). "
+        "Mów ogólnie o doświadczeniu.\n"
+        "- Jeśli rekruter wprost pyta o konkretny projekt — wtedy możesz odpowiedzieć szczegółowo.\n"
+        "- Unikaj zbyt skomplikowanych, trudnych do wymówienia słów w angielskim.\n\n"
+        "STANOWISKO — Odpowiadasz jako kandydat:\n"
         "Imię: Radosław Marek, Software Developer.\n"
-        "Edukacja: Applied Computer Science na Uniwersytecie Jagiellońskim (w trakcie), technik programista (ZST im. Tadeusza Kościuszki w Leżajsku).\n"
+        "Edukacja: Applied Computer Science na Uniwersytecie Jagiellońskim (w trakcie).\n"
         "Umiejętności: React, Next.js, TypeScript, Tailwind, C#, .NET, Python, n8n.\n"
-        "Doświadczenie:\n"
-        "1. Divstack (Software Developer): Automatyzacja n8n/Airtable/ClickUp API.\n"
-        "2. DevCodi (Software Developer): Optymalizacja React UI/UX, integracje API (Google Maps, płatności), e-commerce.\n"
-        "3. Cetuspro (Frontend Developer): Projekty B2B w React, rozwój od stażysty do członka core teamu.\n"
-        "Projekty:\n"
-        "1. GrindVibe: Full-Stack (React 19, .NET 9, EF Core), autoryzacja OAuth/JWT, Redux Toolkit.\n"
-        "2. USOS Registration Bot: Rozszerzenie przeglądarki (JS Manifest V3) do automatycznej rejestracji na zajęcia z milisekundową precyzją pod dużym obciążeniem.\n"
-        "3. Stellar Journey: Projekt 3D na NASA Space Apps 2024 używający Three.js i Reacta.\n"
+        "Doświadczenie: Pracował w kilku firmach jako frontend/software developer — "
+        "projekty B2B w React, optymalizacja UI/UX, integracje API, automatyzacja procesów, e-commerce.\n"
+        "Rozwój: React Native, React Query, Redux.\n"
         "Jeśli rekruter pyta o coś z CV, buduj spójną 'swoją' historię. Pamiętaj: to Twój życiorys."
     ),
     "technical": "Wyczerpująco wyjaśnij techniczne zagadnienie z pytania rekrutera. Zamiast krótkiej odpowiedzi, wyczerp temat – zacznij od najważniejszych kwestii, a następnie rozbuduj odpowiedź o detale merytoryczne. Używaj poprawnej terminologii IT, pokaż głębokie zrozumienie tematu i odpowiadaj w tym samym języku, w którym padło pytanie: po polsku dla polskiego pytania, po angielsku dla angielskiego.",
-    "live_coding": "Live coding. Rozwiąż zadanie ze zdjęcia. Podaj kod w TypeScript na samym początku odpowiedzi. Kod ma być napisany naturalnie i czytelnie, jak podczas prawdziwej rozmowy o pracę. Następnie pod spodem wyjaśnij logikę działania, podaj złożoność czasową i pamięciową oraz wskaż przypadki brzegowe. Część opisową napisz w tym samym języku, w którym jest pytanie: po polsku dla polskiego pytania, po angielsku dla angielskiego."
+    "live_coding": "Live coding. Rozwiąż zadanie ze zdjęcia. Domyślnie podaj kod w JavaScript na samym początku odpowiedzi. Użyj TypeScript tylko wtedy, gdy treść zadania jasno wymaga TypeScript albo wejściowy kod jest już w TypeScript. Kod ma być napisany naturalnie i czytelnie, jak podczas prawdziwej rozmowy o pracę. Następnie pod spodem wyjaśnij logikę działania, podaj złożoność czasową i pamięciową oraz wskaż przypadki brzegowe. Część opisową napisz w tym samym języku, w którym jest pytanie: po polsku dla polskiego pytania, po angielsku dla angielskiego."
 }
 
 
@@ -596,6 +722,8 @@ def transcribe_audio(wav_path: str) -> str:
     if secondary_lang == primary_lang:
         secondary_lang = None
 
+    initial_language = None if _WHISPER_PREFER_AUTO_LANGUAGE else primary_lang
+
     def _run_once(model, language, beam_size, best_of, vad_filter) -> tuple[str, float]:
         segments, _ = model.transcribe(
             wav_path,
@@ -620,7 +748,7 @@ def transcribe_audio(wav_path: str) -> str:
     try:
         transcript, transcript_conf = _run_once(
             whisper_model,
-            language=primary_lang,
+            language=initial_language,
             beam_size=1,
             best_of=1,
             vad_filter=_WHISPER_INITIAL_VAD_FILTER,
@@ -630,21 +758,23 @@ def transcribe_audio(wav_path: str) -> str:
         best_score = _combined_transcript_score(transcript, transcript_conf)
 
         if _WHISPER_MIXED_QUICK_RETRY and _needs_mixed_quick_retry(transcript):
-            retry_transcript, retry_conf = _run_once(
-                whisper_model,
-                language=None,
-                beam_size=1,
-                best_of=1,
-                vad_filter=_WHISPER_INITIAL_VAD_FILTER,
-            )
-            retry_score = _combined_transcript_score(retry_transcript, retry_conf)
-            if retry_score > (best_score + 1.5):
-                best_transcript = retry_transcript
-                best_conf = retry_conf
-                best_score = retry_score
-                transcript = retry_transcript
-                transcript_conf = retry_conf
-                print("[Whisper] Uzyto szybkiego retry auto-jezyk dla slow technicznych.")
+            retry_language = primary_lang if initial_language is None else None
+            if retry_language is not None:
+                retry_transcript, retry_conf = _run_once(
+                    whisper_model,
+                    language=retry_language,
+                    beam_size=1,
+                    best_of=1,
+                    vad_filter=_WHISPER_INITIAL_VAD_FILTER,
+                )
+                retry_score = _combined_transcript_score(retry_transcript, retry_conf)
+                if retry_score > (best_score + 1.5):
+                    best_transcript = retry_transcript
+                    best_conf = retry_conf
+                    best_score = retry_score
+                    transcript = retry_transcript
+                    transcript_conf = retry_conf
+                    print("[Whisper] Uzyto szybkiego retry jezyka dla slow technicznych.")
 
         # Fast profile: if first pass returned any text, skip heavy fallback passes.
         if _WHISPER_FAST_MODE and transcript.strip():
@@ -654,9 +784,10 @@ def transcribe_audio(wav_path: str) -> str:
 
         # If first pass looks weak, run stronger decoding and optional rescue model.
         if _WHISPER_ENABLE_FALLBACK and _is_bad_hypothesis(transcript, transcript_conf):
+            strong_lang = primary_lang if primary_lang is not None else initial_language
             strong_primary, strong_primary_conf = _run_once(
                 whisper_model,
-                language=primary_lang,
+                language=strong_lang,
                 beam_size=_WHISPER_STRONG_BEAM_SIZE,
                 best_of=_WHISPER_STRONG_BEST_OF,
                 vad_filter=False,
@@ -732,14 +863,24 @@ def transcribe_audio(wav_path: str) -> str:
 # Screenshot analysis (one-shot, no audio context, via GitHub Models)
 # ---------------------------------------------------------------------------
 
-def analyze_screenshot(image_bytes: bytes, prompt_type: str = "live_coding") -> tuple[str, str]:
+def analyze_screenshot(image_bytes: bytes, prompt_type: str = "live_coding", forced_language: str | None = None) -> tuple[str, str]:
     """Send a screenshot to LLM via GitHub Models and return the analysis text."""
     start = time.perf_counter()
     github_client = _get_github_client()
     b64_img = base64.b64encode(image_bytes).decode('utf-8')
     selected_prompt = _USER_PROMPTS.get(prompt_type, _USER_PROMPTS["live_coding"])
     extra_context = _contextual_hr_directive(prompt_type)
-    final_prompt = f"{_language_directive()}\n\n{selected_prompt}"
+    
+    # Add screenshot-specific instruction so the model analyzes what's visible on screen
+    screenshot_instruction = (
+        "Na załączonym zrzucie ekranu widać treść, na którą musisz odpowiedzieć. "
+        "Przeanalizuj DOKŁADNIE co widzisz na obrazku — tekst, kod, pytanie, formularz, chat — "
+        "i na tej podstawie udziel odpowiedzi. "
+        "Jeśli widzisz pytanie rekrutacyjne, odpowiedz na nie. "
+        "Jeśli widzisz kod lub zadanie, rozwiąż je.\n\n"
+    )
+    
+    final_prompt = f"{_language_directive(forced_language=forced_language)}\n\n{screenshot_instruction}{selected_prompt}"
     if extra_context:
         final_prompt += f"\n\n{extra_context}"
     
@@ -779,7 +920,7 @@ def analyze_screenshot(image_bytes: bytes, prompt_type: str = "live_coding") -> 
 # Transcript-only analysis (fast audio path, no screenshot)
 # ---------------------------------------------------------------------------
 
-def analyze_transcript_only(audio_transcript: str, prompt_type: str = "live_coding") -> tuple[str, str]:
+def analyze_transcript_only(audio_transcript: str, prompt_type: str = "live_coding", forced_language: str | None = None) -> tuple[str, str]:
     """Send only transcript text to LLM for fastest voice-first response."""
     start = time.perf_counter()
     github_client = _get_github_client()
@@ -789,7 +930,15 @@ def analyze_transcript_only(audio_transcript: str, prompt_type: str = "live_codi
         return "Brak transkrypcji mowy.", ""
 
     selected_prompt = _USER_PROMPTS.get(prompt_type, _USER_PROMPTS["live_coding"])
-    language_directive = _language_directive(transcript)
+    # Use forced language override from GUI, otherwise auto-detect from transcript
+    if forced_language:
+        preferred_lang = forced_language
+        print(f"[Lang] Wymuszony jezyk odpowiedzi z GUI: {preferred_lang}")
+    else:
+        preferred_lang = _detect_response_language_from_transcript(transcript)
+        if preferred_lang is not None:
+            print(f"[Lang] Jezyk odpowiedzi z transkrypcji: {preferred_lang}")
+    language_directive = _language_directive(transcript, forced_language=preferred_lang)
     extra_context = _contextual_hr_directive(prompt_type, transcript)
 
     final_prompt = (
@@ -830,14 +979,15 @@ def analyze_transcript_only(audio_transcript: str, prompt_type: str = "live_codi
 # ---------------------------------------------------------------------------
 
 def analyze_screenshot_with_context(
-    image_bytes: bytes, audio_transcript: str, prompt_type: str = "live_coding"
+    image_bytes: bytes, audio_transcript: str, prompt_type: str = "live_coding", forced_language: str | None = None
 ) -> tuple[str, str]:
     """Send screenshot + text context to LLM via GitHub Models for combined analysis."""
     start = time.perf_counter()
     github_client = _get_github_client()
     b64_img = base64.b64encode(image_bytes).decode('utf-8')
     selected_prompt = _USER_PROMPTS.get(prompt_type, _USER_PROMPTS["live_coding"])
-    language_directive = _language_directive(audio_transcript)
+    preferred_lang = forced_language or _detect_response_language_from_transcript(audio_transcript)
+    language_directive = _language_directive(audio_transcript, forced_language=preferred_lang)
     extra_context = _contextual_hr_directive(prompt_type, audio_transcript)
     
     final_prompt = (

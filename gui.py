@@ -147,6 +147,7 @@ class AssistantWindow(QWidget):
     voice_toggle_clicked = pyqtSignal()
     solve_screen_clicked = pyqtSignal()
     stealth_toggled = pyqtSignal(bool)  # True = stealth ON
+    language_override_changed = pyqtSignal(str)  # "auto", "pl", "en"
 
     def __init__(self) -> None:
         super().__init__()
@@ -224,6 +225,33 @@ class AssistantWindow(QWidget):
             }
         """)
         title_layout.addWidget(self.prompt_combo)
+
+        # ----- Language override selector -----
+        self.lang_combo = QComboBox()
+        self.lang_combo.addItems(["🌐 Auto", "🇵🇱 Polski", "🇬🇧 English"])
+        self.lang_combo.setCursor(Qt.CursorShape.ArrowCursor)
+        self.lang_combo.setMinimumWidth(100)
+        self.lang_combo.setMaximumWidth(120)
+        self.lang_combo.setStyleSheet("""
+            QComboBox {
+                background: rgba(20,20,25,0.95);
+                color: rgba(255,255,255,0.9);
+                border: 1px solid rgba(80,80,80,0.5);
+                border-radius: 4px;
+                padding: 2px 8px;
+                font-size: 11px;
+            }
+            QComboBox::drop-down {
+                border: none;
+            }
+            QComboBox QAbstractItemView {
+                background: rgba(20,20,25,1);
+                color: rgba(255,255,255,0.9);
+                selection-background-color: rgba(80,80,80,0.8);
+            }
+        """)
+        self.lang_combo.currentIndexChanged.connect(self._on_lang_changed)
+        title_layout.addWidget(self.lang_combo)
         
         # ----- Token Info Label -----
         self._token_label = QLabel("")
@@ -627,6 +655,19 @@ class AssistantWindow(QWidget):
     def set_response(self, text: str, info: str = "") -> None:
         self._status_label.setText("")
         self._store_response(text, info)
+
+    # ---- Language override ----
+
+    def _on_lang_changed(self, index: int) -> None:
+        mapping = {0: "auto", 1: "pl", 2: "en"}
+        lang = mapping.get(index, "auto")
+        print(f"[GUI] Język odpowiedzi: {lang}")
+        self.language_override_changed.emit(lang)
+
+    def get_language_override(self) -> str | None:
+        """Return forced language code or None for auto-detect."""
+        mapping = {0: None, 1: "pl", 2: "en"}
+        return mapping.get(self.lang_combo.currentIndex(), None)
 
     # ---- Voice mode ----
 

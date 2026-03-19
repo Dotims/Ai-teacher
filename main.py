@@ -135,9 +135,10 @@ def _compose_audio_panel(transcript: str, answer: str | None = None, fallback: b
 class _WorkflowManager:
     """Manages the audio recording and GPT-4o + Whisper pipeline."""
 
-    def __init__(self, bridge: _SignalBridge, get_prompt_type_cb) -> None:
+    def __init__(self, bridge: _SignalBridge, get_prompt_type_cb, get_lang_override_cb=None) -> None:
         self._bridge = bridge
         self._get_prompt_type = get_prompt_type_cb
+        self._get_lang_override = get_lang_override_cb or (lambda: None)
         self._audio_capture = SystemAudioCapture(on_audio_ready_callback=None)
         self._bridge.audio_ready.connect(self._process_audio_and_solve)
         
@@ -198,6 +199,7 @@ class _WorkflowManager:
         self._is_processing = True
 
         prompt_type = self._get_prompt_type()
+        forced_lang = self._get_lang_override()
         def _worker() -> None:
             started = time.perf_counter()
             try:
@@ -209,7 +211,7 @@ class _WorkflowManager:
                 
                 if task_id != self._current_task_id: return
                 print("🤖 Wysyłanie zapytania do modelu (bez audio)...")
-                answer, info = analyze_screenshot(screenshot_bytes, prompt_type)
+                answer, info = analyze_screenshot(screenshot_bytes, prompt_type, forced_language=forced_lang)
                 
                 if task_id != self._current_task_id: return
                 self._bridge.result_ready.emit(answer, info)
@@ -230,6 +232,7 @@ class _WorkflowManager:
         self._is_processing = True
 
         prompt_type = self._get_prompt_type()
+        forced_lang = self._get_lang_override()
         def _worker() -> None:
             started = time.perf_counter()
             try:
@@ -251,7 +254,7 @@ class _WorkflowManager:
                 if transcript.strip():
                     self._bridge.voice_text.emit(_compose_audio_panel(transcript))
                     print("🤖 Wysyłanie zapytania do modelu (transkrypcja-only)...")
-                    answer, info = analyze_transcript_only(transcript, prompt_type)
+                    answer, info = analyze_transcript_only(transcript, prompt_type, forced_language=forced_lang)
                     response_text = _compose_audio_panel(transcript, answer=answer)
                 else:
                     info = ""
@@ -319,7 +322,11 @@ def main() -> None:
         return "live_coding"
 
     # --------------- Workflow manager ---------------
-    workflow = _WorkflowManager(bridge, get_prompt_type_cb=get_selected_prompt_type)
+    workflow = _WorkflowManager(
+        bridge,
+        get_prompt_type_cb=get_selected_prompt_type,
+        get_lang_override_cb=lambda: window.get_language_override(),
+    )
 
     # --------------- Solve from screen (Numpad 1 or button) ---------------
     def on_solve_screen() -> None:
