@@ -636,7 +636,14 @@ _HR_PERSONAL_NOTES = (
     "- Rozwoj: React Native, React Query, Redux.\n"
     "- Doswiadczenie zawodowe: praca w firmach jako frontend/software developer (projekty B2B, e-commerce, automatyzacja).\n"
     "- NIE WSPOMINAJ nazw projektow z CV (np. GrindVibe, USOS Bot, Stellar Journey) chyba ze rekruter wprost o nie zapyta.\n"
-    "- Odpowiedzi maja brzmiec naturalnie i ustnie, bez przesadnie ksiazkowego stylu."
+    "- Odpowiedzi maja brzmiec naturalnie i ustnie, bez przesadnie ksiazkowego stylu.\n\n"
+    "PRYWATNIE / POZA PRACA lub obowiązkami:\n"
+    "- robię swoje projekty programistyczne"
+    "- Bardzo aktywny fizycznie — duzo biega, jest biegaczem, prowadzi sportowy tryb zycia.\n"
+    "- Sport jest dla niego sposobem na relaks i reset glowy po pracy.\n\n"
+    "WADY (gdy rekruter pyta o slabe strony):\n"
+    "- Potrafi sie dosyc szybko zdenerwowac/zirytowac, ale jest tego swiadomy.\n"
+    "- Radzi sobie z tym dzieki regularnemu uprawianiu sportu (bieganie, cwiczenia) — to go wycisza i pomaga utrzymac rownowage."
 )
 
 
@@ -646,9 +653,9 @@ def _contextual_hr_directive(prompt_type: str, transcript: str = "") -> str:
 
     lang = _detect_response_language_from_transcript(transcript)
     if lang == "en":
-        style_line = "For English answers, keep a spoken B2/C1 level, 4-8 sentences, confident but natural. Avoid complex obscure words."
+        style_line = "For English answers, keep a spoken B2/C1 level, 6-12 sentences, confident but natural. Avoid complex obscure words. Elaborate enough to show personality."
     elif lang == "pl":
-        style_line = "Dla odpowiedzi po polsku zachowaj naturalny, mówiony styl i konkret. 4-8 zdań."
+        style_line = "Dla odpowiedzi po polsku zachowaj naturalny, mówiony styl i konkret. 6-12 zdań. Rozwin odpowiedź — pokaż osobowość."
     else:
         style_line = (
             "Keep one language only: choose the dominant language from transcript terms. "
@@ -677,7 +684,8 @@ _USER_PROMPTS = {
         "Jeśli rekruter przeszedł na ANGIELSKI — odpowiedz po ANGIELSKU (poziom B2/lekki C1, bez skomplikowanych słów).\n"
         "Odpowiedź powinna brzmieć autentycznie i naturalnie, jak osoba naprawdę opowiadająca o sobie.\n\n"
         "ZASADY:\n"
-        "- Maksymalnie 4-8 zdań, jak w normalnej rozmowie.\n"
+        "- Odpowiadaj pełnymi, rozwiniętymi zdaniami — 6-12 zdań, jak w prawdziwej rozmowie. NIE dawaj krótkich 2-3 zdaniowych odpowiedzi.\n"
+        "- Rozwijaj myśli — dodaj kontekst, przykład z doświadczenia, motywację.\n"
         "- NIE wspominaj z własnej inicjatywy nazw konkretnych projektów z CV (GrindVibe, USOS Bot, Stellar Journey). "
         "Mów ogólnie o doświadczeniu.\n"
         "- Jeśli rekruter wprost pyta o konkretny projekt — wtedy możesz odpowiedzieć szczegółowo.\n"
