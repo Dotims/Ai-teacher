@@ -595,10 +595,17 @@ class AssistantWindow(QWidget):
         for widget in (self._btn_bar, self._nav_bar, self._response_area, self._handle_widget):
             widget.setVisible(not self._collapsed)
 
+        outer_layout = self.layout()
         if self._collapsed:
             self._saved_size = self.size()
-            self.resize(self.width(), 52)
+            # Shrink outer margins so title bar fills the window tightly
+            outer_layout.setContentsMargins(2, 2, 2, 2)
+            self.setFixedHeight(44)
         else:
+            outer_layout.setContentsMargins(12, 12, 12, 12)
+            # Remove fixed height constraint and restore previous size
+            self.setMinimumHeight(0)
+            self.setMaximumHeight(16777215)
             if hasattr(self, '_saved_size'):
                 self.resize(self._saved_size)
 

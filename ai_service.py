@@ -586,6 +586,14 @@ _USER_PROMPTS = {
         "Rozwój: React Native, React Query, Redux.\n"
         "Jeśli rekruter pyta o coś z CV, buduj spójną 'swoją' historię. Pamiętaj: to Twój życiorys."
     ),
+    "hr_screen": (
+        "Tryb HR \u2014 analiza ekranu. Przeanalizuj dok\u0142adnie co widzisz na zrzucie ekranu: "
+        "pytania w chacie, formularz, zadanie tekstowe, quiz itp.\n"
+        "Je\u015bli widzisz pytanie rekrutacyjne \u2014 odpowiedz na nie naturalnie, jak kandydat w rozmowie HR (lu\u017ano, 4-8 zda\u0144).\n"
+        "Je\u015bli widzisz zadanie, test, quiz \u2014 znajd\u017a poprawne odpowiedzi / rozwi\u0105zanie.\n"
+        "Je\u015bli widzisz kod lub kontekst techniczny \u2014 wyja\u015bnij co si\u0119 dzieje i zaproponuj rozwi\u0105zanie.\n"
+        "J\u0119zyk: odpowiadaj w j\u0119zyku pytania widocznego na ekranie."
+    ),
     "technical": (
         "Pytanie techniczne z rozmowy rekrutacyjnej. Wygeneruj odpowiedź TAK JAKBYM JA JĄ MÓWIŁ rekruterowi — naturalnie, swoimi słowami, pewnie.\n"
         "NIE pisz definicji, NIE pisz jak z podręcznika, NIE wyliczaj punktów encyklopedycznie.\n"
@@ -600,7 +608,18 @@ _USER_PROMPTS = {
         "Jeśli to pytanie teoretyczne — odpowiedz naturalnie, jak kandydat w rozmowie, nie jak encyklopedia.\n"
         "Język: odpowiadaj w języku pytania."
     ),
-    "live_coding": "Live coding. Rozwiąż zadanie ze zdjęcia. Domyślnie podaj kod w JavaScript na samym początku odpowiedzi. Użyj TypeScript tylko wtedy, gdy treść zadania jasno wymaga TypeScript albo wejściowy kod jest już w TypeScript. Kod ma być napisany naturalnie i czytelnie, jak podczas prawdziwej rozmowy o pracę. Następnie pod spodem wyjaśnij logikę działania, podaj złożoność czasową i pamięciową oraz wskaż przypadki brzegowe. Część opisową napisz w tym samym języku, w którym jest pytanie: po polsku dla polskiego pytania, po angielsku dla angielskiego."
+    "live_coding": (
+        "Live coding. Rozwi\u0105\u017c zadanie ze zdj\u0119cia.\n"
+        "ALGORYTMICZNE ZADANIA: Domy\u015blnie podaj kod w JavaScript na samym pocz\u0105tku odpowiedzi. "
+        "U\u017cyj TypeScript tylko wtedy, gdy tre\u015b\u0107 zadania jasno wymaga TypeScript albo wej\u015bciowy kod jest ju\u017c w TypeScript. "
+        "Kod ma by\u0107 napisany naturalnie i czytelnie, jak podczas prawdziwej rozmowy o prac\u0119. "
+        "Nast\u0119pnie pod spodem wyja\u015bnij logik\u0119 dzia\u0142ania, podaj z\u0142o\u017cono\u015b\u0107 czasow\u0105 i pami\u0119ciow\u0105 oraz wska\u017c przypadki brzegowe.\n\n"
+        "ZADANIA NIEALGORYTMICZNE (np. napisz komponent React, stw\u00f3rz API, zbuduj formularz): "
+        "Podaj kompletny kod plik po pliku. Je\u015bli zadanie wymaga kilku plik\u00f3w, "
+        "u\u017cyj nag\u0142\u00f3wk\u00f3w z nazwami plik\u00f3w (np. `### App.tsx`, `### api/handler.ts`) i podaj pe\u0142ny kod ka\u017cdego pliku. "
+        "Pisz w j\u0119zyku/frameworku wymaganym przez zadanie.\n\n"
+        "Cz\u0119\u015b\u0107 opisow\u0105 napisz w tym samym j\u0119zyku, w kt\u00f3rym jest pytanie: po polsku dla polskiego pytania, po angielsku dla angielskiego."
+    )
 }
 
 
@@ -881,8 +900,9 @@ def analyze_screenshot(image_bytes: bytes, prompt_type: str = "live_coding", for
     start = time.perf_counter()
     github_client = _get_github_client()
     b64_img = base64.b64encode(image_bytes).decode('utf-8')
-    # For screenshot analysis, use the screen-specific variant of technical prompt
-    effective_type = "technical_screen" if prompt_type == "technical" else prompt_type
+    # For screenshot analysis, use screen-specific prompt variants
+    _screen_map = {"technical": "technical_screen", "hr": "hr_screen"}
+    effective_type = _screen_map.get(prompt_type, prompt_type)
     selected_prompt = _USER_PROMPTS.get(effective_type, _USER_PROMPTS["live_coding"])
     extra_context = _contextual_hr_directive(prompt_type)
     
@@ -1000,8 +1020,9 @@ def analyze_screenshot_with_context(
     start = time.perf_counter()
     github_client = _get_github_client()
     b64_img = base64.b64encode(image_bytes).decode('utf-8')
-    # For screenshot+context analysis, use the screen-specific variant of technical prompt
-    effective_type = "technical_screen" if prompt_type == "technical" else prompt_type
+    # For screenshot+context analysis, use screen-specific prompt variants
+    _screen_map = {"technical": "technical_screen", "hr": "hr_screen"}
+    effective_type = _screen_map.get(prompt_type, prompt_type)
     selected_prompt = _USER_PROMPTS.get(effective_type, _USER_PROMPTS["live_coding"])
     preferred_lang = forced_language or _detect_response_language_from_transcript(audio_transcript)
     language_directive = _language_directive(audio_transcript, forced_language=preferred_lang)

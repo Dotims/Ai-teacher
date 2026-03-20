@@ -114,15 +114,15 @@ def _compose_audio_panel(transcript: str, answer: str | None = None, fallback: b
     else:
         answer_block = answer.strip() or "_Model nie zwrócił treści odpowiedzi._"
 
-    header = "⚠️ Whisper nie wykrył użytecznej mowy."
-    if cleaned_transcript and not fallback:
-        header = "🗣️ Wykryta transkrypcja"
-    elif fallback:
-        header = "⚠️ Brak transkrypcji audio"
+    if fallback or not cleaned_transcript:
+        return (
+            "⚠️ Brak transkrypcji audio\n\n"
+            f"---\n\n"
+            f"### Odpowiedź\n\n{answer_block}"
+        )
 
     return (
-        f"{header}\n\n"
-        f"### Transkrypcja\n\n{transcript_block}\n\n"
+        f"**Transkrypcja**\n{transcript_block}\n\n"
         f"---\n\n"
         f"### Odpowiedź\n\n{answer_block}"
     )
