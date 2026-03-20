@@ -149,6 +149,7 @@ class AssistantWindow(QWidget):
     solve_screen_clicked = pyqtSignal()
     stealth_toggled = pyqtSignal(bool)  # True = stealth ON
     language_override_changed = pyqtSignal(str)  # "auto", "pl", "en"
+    model_changed = pyqtSignal(str)  # emits model name e.g. "gpt-4o-mini"
 
     _DEFAULT_FONT_SIZE = 14.5
 
@@ -209,8 +210,8 @@ class AssistantWindow(QWidget):
         self.prompt_combo = QComboBox()
         self.prompt_combo.addItems(["Rozmowa HR (PL/ENG)", "Pytania Techniczne", "Live Coding"])
         self.prompt_combo.setCursor(Qt.CursorShape.ArrowCursor)
-        self.prompt_combo.setMinimumWidth(155)
-        self.prompt_combo.setMaximumWidth(175)
+        self.prompt_combo.setMinimumWidth(130)
+        self.prompt_combo.setMaximumWidth(160)
         self.prompt_combo.setStyleSheet("""
             QComboBox {
                 background: rgba(20,20,25,0.95);
@@ -235,8 +236,8 @@ class AssistantWindow(QWidget):
         self.lang_combo = QComboBox()
         self.lang_combo.addItems(["🌐 Auto", "🇵🇱 Polski", "🇬🇧 English"])
         self.lang_combo.setCursor(Qt.CursorShape.ArrowCursor)
-        self.lang_combo.setMinimumWidth(100)
-        self.lang_combo.setMaximumWidth(120)
+        self.lang_combo.setMinimumWidth(80)
+        self.lang_combo.setMaximumWidth(100)
         self.lang_combo.setStyleSheet("""
             QComboBox {
                 background: rgba(20,20,25,0.95);
@@ -257,6 +258,33 @@ class AssistantWindow(QWidget):
         """)
         self.lang_combo.currentIndexChanged.connect(self._on_lang_changed)
         title_layout.addWidget(self.lang_combo)
+
+        # ----- Model selector -----
+        self.model_combo = QComboBox()
+        self.model_combo.addItems(["gpt-4o-mini", "gpt-4o"])
+        self.model_combo.setCursor(Qt.CursorShape.ArrowCursor)
+        self.model_combo.setMinimumWidth(80)
+        self.model_combo.setMaximumWidth(100)
+        self.model_combo.setStyleSheet("""
+            QComboBox {
+                background: rgba(20,20,25,0.95);
+                color: rgba(255,255,255,0.9);
+                border: 1px solid rgba(80,80,80,0.5);
+                border-radius: 4px;
+                padding: 2px 8px;
+                font-size: 11px;
+            }
+            QComboBox::drop-down {
+                border: none;
+            }
+            QComboBox QAbstractItemView {
+                background: rgba(20,20,25,1);
+                color: rgba(255,255,255,0.9);
+                selection-background-color: rgba(80,80,80,0.8);
+            }
+        """)
+        self.model_combo.currentTextChanged.connect(self._on_model_changed)
+        title_layout.addWidget(self.model_combo)
 
         # ----- Font size controls -----
         _fs_btn_css = """
@@ -373,7 +401,7 @@ class AssistantWindow(QWidget):
         # Voice toggle
         self._voice_btn = QPushButton("🎙️ Start nasłuchiwanie")
         self._voice_btn.setCursor(Qt.CursorShape.ArrowCursor)
-        self._voice_btn.setMinimumWidth(152)
+        self._voice_btn.setMinimumWidth(120)
         self._voice_btn.setStyleSheet(
             _btn_style(
                 "#fff", "rgba(255,77,106,0.15)", "rgba(255,77,106,0.4)",
@@ -386,7 +414,7 @@ class AssistantWindow(QWidget):
         # Solve from screen
         self._solve_btn = QPushButton("📸 Rozwiąż z ekranu")
         self._solve_btn.setCursor(Qt.CursorShape.ArrowCursor)
-        self._solve_btn.setMinimumWidth(152)
+        self._solve_btn.setMinimumWidth(120)
         self._solve_btn.setStyleSheet(
             _btn_style(
                 "#fff", "rgba(100,108,255,0.15)", "rgba(100,108,255,0.4)",
@@ -399,7 +427,7 @@ class AssistantWindow(QWidget):
         # Stealth toggle
         self._stealth_btn = QPushButton("👁️ Stealth ON")
         self._stealth_btn.setCursor(Qt.CursorShape.ArrowCursor)
-        self._stealth_btn.setMinimumWidth(152)
+        self._stealth_btn.setMinimumWidth(120)
         self._stealth_btn.setStyleSheet(
             _btn_style(
                 "#fff", "rgba(46,204,113,0.15)", "rgba(46,204,113,0.4)",
@@ -419,7 +447,7 @@ class AssistantWindow(QWidget):
 
         self._prev_btn = QPushButton("◀ Poprzednia")
         self._prev_btn.setCursor(Qt.CursorShape.ArrowCursor)
-        self._prev_btn.setMinimumWidth(106)
+        self._prev_btn.setMinimumWidth(80)
         self._prev_btn.setStyleSheet(
             _btn_style(
                 "#fff", "rgba(80,80,80,0.15)", "rgba(120,120,120,0.35)",
@@ -438,7 +466,7 @@ class AssistantWindow(QWidget):
 
         self._next_btn = QPushButton("Następna ▶")
         self._next_btn.setCursor(Qt.CursorShape.ArrowCursor)
-        self._next_btn.setMinimumWidth(106)
+        self._next_btn.setMinimumWidth(80)
         self._next_btn.setStyleSheet(
             _btn_style(
                 "#fff", "rgba(80,80,80,0.15)", "rgba(120,120,120,0.35)",
@@ -656,13 +684,8 @@ class AssistantWindow(QWidget):
     def _set_token_info(self, info: str) -> None:
         value = (info or "").strip()
         self._token_label.setToolTip(value)
-        if not value:
-            self._token_label.setText("")
-            return
-
-        max_len = 28
-        compact = value if len(value) <= max_len else (value[: max_len - 3] + "...")
-        self._token_label.setText(compact)
+        # Don't display API info text — only keep as tooltip
+        self._token_label.setText("")
 
     def _build_html_style(self) -> str:
         fs = self._font_size
@@ -796,6 +819,12 @@ class AssistantWindow(QWidget):
         """Return forced language code or None for auto-detect."""
         mapping = {0: None, 1: "pl", 2: "en"}
         return mapping.get(self.lang_combo.currentIndex(), None)
+
+    # ---- Model selector ----
+
+    def _on_model_changed(self, model_name: str) -> None:
+        print(f"[GUI] Model LLM: {model_name}")
+        self.model_changed.emit(model_name)
 
     # ---- Voice mode ----
 

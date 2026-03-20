@@ -80,8 +80,32 @@ _LLM_MODEL = (os.getenv("LLM_MODEL") or "gpt-4o-mini").strip() or "gpt-4o-mini"
 _LLM_TIMEOUT_SEC = _env_float("LLM_TIMEOUT_SEC", 60.0)
 _LLM_MAX_TOKENS = max(200, _env_int("LLM_MAX_TOKENS", 700))
 
+# Available models for the GUI selector
+AVAILABLE_MODELS = ["gpt-4o-mini", "gpt-4o"]
+
 _github_client = None
 _openai_load_error = None
+
+# OpenAI direct fallback
+_OPENAI_API_KEY = (os.getenv("OPENAI_API_KEY") or "").strip()
+_openai_fallback_client = None
+_openai_fallback_error = None
+
+
+def set_llm_model(model_name: str) -> None:
+    """Change the active LLM model at runtime."""
+    global _LLM_MODEL
+    model_name = (model_name or "").strip()
+    if model_name in AVAILABLE_MODELS:
+        _LLM_MODEL = model_name
+        print(f"[LLM] Model zmieniony na: {_LLM_MODEL}")
+    else:
+        print(f"[LLM] Nieznany model: {model_name}, pozostaje: {_LLM_MODEL}")
+
+
+def get_llm_model() -> str:
+    """Return the currently active LLM model name."""
+    return _LLM_MODEL
 
 
 def _get_github_client():
@@ -106,6 +130,83 @@ def _get_github_client():
     except Exception as exc:
         _openai_load_error = f"Nie mozna zaladowac klienta OpenAI: {exc}"
         raise RuntimeError(_openai_load_error) from exc
+
+
+def _get_openai_fallback_client():
+    """Lazy-load direct OpenAI client for fallback when GitHub Models fails."""
+    global _openai_fallback_client, _openai_fallback_error
+
+    if _openai_fallback_client is not None:
+        return _openai_fallback_client
+
+    if _openai_fallback_error is not None:
+        return None
+
+    if not _OPENAI_API_KEY:
+        _openai_fallback_error = "Brak OPENAI_API_KEY w .env"
+        return None
+
+    try:
+        from openai import OpenAI
+        _openai_fallback_client = OpenAI(
+            api_key=_OPENAI_API_KEY,
+            timeout=_LLM_TIMEOUT_SEC,
+            max_retries=1,
+        )
+        print("[LLM] Klient OpenAI fallback gotowy.")
+        return _openai_fallback_client
+    except Exception as exc:
+        _openai_fallback_error = f"Nie mozna zaladowac klienta OpenAI fallback: {exc}"
+        return None
+
+
+def _call_llm_with_fallback(messages: list, model: str | None = None) -> tuple[str, str]:
+    """Call GitHub Models API; on failure, fall back to direct OpenAI API."""
+    used_model = model or _LLM_MODEL
+
+    # --- Try GitHub Models first ---
+    try:
+        client = _get_github_client()
+        raw_response = client.chat.completions.with_raw_response.create(
+            model=used_model,
+            temperature=0.0,
+            max_tokens=_LLM_MAX_TOKENS,
+            messages=messages,
+        )
+        headers = raw_response.headers
+        rem_tokens = headers.get('x-ratelimit-remaining-tokens', '?')
+        rem_reqs = headers.get('x-ratelimit-remaining-requests', '?')
+        completion = raw_response.parse()
+        text = (completion.choices[0].message.content or "").strip()
+        if not text:
+            text = "Model nie zwrócił treści odpowiedzi."
+        info_str = f"API Limit: {rem_reqs} req | {rem_tokens} tok"
+        return text, info_str
+    except Exception as github_exc:
+        print(f"[LLM] GitHub API błąd: {github_exc}")
+        print("[LLM] Próbuję fallback na OpenAI...")
+
+    # --- Fallback to OpenAI ---
+    fallback_client = _get_openai_fallback_client()
+    if fallback_client is None:
+        return "❌ GitHub API niedostępne, brak skonfigurowanego OpenAI fallback.", ""
+
+    try:
+        response = fallback_client.chat.completions.create(
+            model=used_model,
+            temperature=0.0,
+            max_tokens=_LLM_MAX_TOKENS,
+            messages=messages,
+        )
+        text = (response.choices[0].message.content or "").strip()
+        if not text:
+            text = "Model nie zwrócił treści odpowiedzi."
+        info_str = "⚡ OpenAI Fallback"
+        print(f"[LLM] Fallback OpenAI sukces (model: {used_model}).")
+        return text, info_str
+    except Exception as openai_exc:
+        print(f"[LLM] Fallback OpenAI też zawiódł: {openai_exc}")
+        return f"❌ Oba API zawiodły. GitHub: {github_exc} | OpenAI: {openai_exc}", ""
 
 
 # Local Whisper Client
@@ -317,14 +418,18 @@ def _get_whisper_model(allow_download: bool = True):
             if not allow_download:
                 kwargs["local_files_only"] = True
 
+            # Use env-controlled device (default: cpu/int8, set WHISPER_DEVICE=cuda for GPU)
+            _device = _env_str("WHISPER_DEVICE", "cpu").lower()
+            _compute = "float16" if _device == "cuda" else "int8"
+
             _whisper_model = WhisperModel(
                 _WHISPER_MODEL_NAME,
-                device="cpu",
-                compute_type="int8",
+                device=_device,
+                compute_type=_compute,
                 **kwargs,
             )
             _whisper_load_error = None
-            print(f"[Whisper] Model gotowy po {time.perf_counter() - load_start:.1f}s.")
+            print(f"[Whisper] Model gotowy ({_device}/{_compute}) po {time.perf_counter() - load_start:.1f}s.")
             return _whisper_model
         except KeyboardInterrupt as exc:
             # Interrupted imports can leave half-initialized modules in sys.modules.
@@ -898,7 +1003,6 @@ def transcribe_audio(wav_path: str) -> str:
 def analyze_screenshot(image_bytes: bytes, prompt_type: str = "live_coding", forced_language: str | None = None) -> tuple[str, str]:
     """Send a screenshot to LLM via GitHub Models and return the analysis text."""
     start = time.perf_counter()
-    github_client = _get_github_client()
     b64_img = base64.b64encode(image_bytes).decode('utf-8')
     # For screenshot analysis, use screen-specific prompt variants
     _screen_map = {"technical": "technical_screen", "hr": "hr_screen"}
@@ -906,47 +1010,30 @@ def analyze_screenshot(image_bytes: bytes, prompt_type: str = "live_coding", for
     selected_prompt = _USER_PROMPTS.get(effective_type, _USER_PROMPTS["live_coding"])
     extra_context = _contextual_hr_directive(prompt_type)
     
-    # Add screenshot-specific instruction so the model analyzes what's visible on screen
     screenshot_instruction = (
-        "Na załączonym zrzucie ekranu widać treść, na którą musisz odpowiedzieć. "
-        "Przeanalizuj DOKŁADNIE co widzisz na obrazku — tekst, kod, pytanie, formularz, chat — "
+        "Na za\u0142\u0105czonym zrzucie ekranu wida\u0107 tre\u015b\u0107, na kt\u00f3r\u0105 musisz odpowiedzie\u0107. "
+        "Przeanalizuj DOK\u0141ADNIE co widzisz na obrazku \u2014 tekst, kod, pytanie, formularz, chat \u2014 "
         "i na tej podstawie udziel odpowiedzi. "
-        "Jeśli widzisz pytanie rekrutacyjne, odpowiedz na nie. "
-        "Jeśli widzisz kod lub zadanie, rozwiąż je.\n\n"
+        "Je\u015bli widzisz pytanie rekrutacyjne, odpowiedz na nie. "
+        "Je\u015bli widzisz kod lub zadanie, rozwi\u0105\u017c je.\n\n"
     )
     
     final_prompt = f"{_language_directive(forced_language=forced_language)}\n\n{screenshot_instruction}{selected_prompt}"
     if extra_context:
         final_prompt += f"\n\n{extra_context}"
     
-    # Use with_raw_response to access HTTP headers
-    raw_response = github_client.chat.completions.with_raw_response.create(
-        model=_LLM_MODEL,
-        temperature=0.0,
-        max_tokens=_LLM_MAX_TOKENS,
-        messages=[
-            {"role": "system", "content": _SYSTEM_PROMPT},
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": final_prompt},
-                    {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64_img}"}}
-                ],
-            }
-        ]
-    )
+    messages = [
+        {"role": "system", "content": _SYSTEM_PROMPT},
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": final_prompt},
+                {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64_img}"}}
+            ],
+        }
+    ]
     
-    headers = raw_response.headers
-    rem_tokens = headers.get('x-ratelimit-remaining-tokens', '?')
-    rem_reqs = headers.get('x-ratelimit-remaining-requests', '?')
-    
-    # Get the actual JSON content
-    completion = raw_response.parse()
-    text = (completion.choices[0].message.content or "").strip()
-    if not text:
-        text = "Model nie zwrócił treści odpowiedzi."
-    
-    info_str = f"API Limit: {rem_reqs} req | {rem_tokens} tok"
+    text, info_str = _call_llm_with_fallback(messages)
     print(f"[LLM] Odpowiedz modelu {_LLM_MODEL} w {time.perf_counter() - start:.1f}s.")
     return text, info_str
 
@@ -958,14 +1045,12 @@ def analyze_screenshot(image_bytes: bytes, prompt_type: str = "live_coding", for
 def analyze_transcript_only(audio_transcript: str, prompt_type: str = "live_coding", forced_language: str | None = None) -> tuple[str, str]:
     """Send only transcript text to LLM for fastest voice-first response."""
     start = time.perf_counter()
-    github_client = _get_github_client()
 
     transcript = (audio_transcript or "").strip()
     if not transcript:
         return "Brak transkrypcji mowy.", ""
 
     selected_prompt = _USER_PROMPTS.get(prompt_type, _USER_PROMPTS["live_coding"])
-    # Use forced language override from GUI, otherwise auto-detect from transcript
     if forced_language:
         preferred_lang = forced_language
         print(f"[Lang] Wymuszony jezyk odpowiedzi z GUI: {preferred_lang}")
@@ -985,26 +1070,12 @@ def analyze_transcript_only(audio_transcript: str, prompt_type: str = "live_codi
         "Odpowiedz wyłącznie na podstawie tej transkrypcji."
     )
 
-    raw_response = github_client.chat.completions.with_raw_response.create(
-        model=_LLM_MODEL,
-        temperature=0.0,
-        max_tokens=_LLM_MAX_TOKENS,
-        messages=[
-            {"role": "system", "content": _SYSTEM_PROMPT},
-            {"role": "user", "content": final_prompt},
-        ]
-    )
+    messages = [
+        {"role": "system", "content": _SYSTEM_PROMPT},
+        {"role": "user", "content": final_prompt},
+    ]
 
-    headers = raw_response.headers
-    rem_tokens = headers.get('x-ratelimit-remaining-tokens', '?')
-    rem_reqs = headers.get('x-ratelimit-remaining-requests', '?')
-
-    completion = raw_response.parse()
-    text = (completion.choices[0].message.content or "").strip()
-    if not text:
-        text = "Model nie zwrócił treści odpowiedzi."
-
-    info_str = f"API Limit: {rem_reqs} req | {rem_tokens} tok"
+    text, info_str = _call_llm_with_fallback(messages)
     print(f"[LLM] Odpowiedz modelu {_LLM_MODEL} (transkrypcja-only) w {time.perf_counter() - start:.1f}s.")
     return text, info_str
 
@@ -1018,9 +1089,7 @@ def analyze_screenshot_with_context(
 ) -> tuple[str, str]:
     """Send screenshot + text context to LLM via GitHub Models for combined analysis."""
     start = time.perf_counter()
-    github_client = _get_github_client()
     b64_img = base64.b64encode(image_bytes).decode('utf-8')
-    # For screenshot+context analysis, use screen-specific prompt variants
     _screen_map = {"technical": "technical_screen", "hr": "hr_screen"}
     effective_type = _screen_map.get(prompt_type, prompt_type)
     selected_prompt = _USER_PROMPTS.get(effective_type, _USER_PROMPTS["live_coding"])
@@ -1037,32 +1106,18 @@ def analyze_screenshot_with_context(
         "Rozwiąż to zadanie uwzględniając powyższy kontekst z rozmowy."
     )
     
-    raw_response = github_client.chat.completions.with_raw_response.create(
-        model=_LLM_MODEL,
-        temperature=0.0,
-        max_tokens=_LLM_MAX_TOKENS,
-        messages=[
-            {"role": "system", "content": _SYSTEM_PROMPT},
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": final_prompt},
-                    {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64_img}"}}
-                ],
-            }
-        ]
-    )
+    messages = [
+        {"role": "system", "content": _SYSTEM_PROMPT},
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": final_prompt},
+                {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{b64_img}"}}
+            ],
+        }
+    ]
     
-    headers = raw_response.headers
-    rem_tokens = headers.get('x-ratelimit-remaining-tokens', '?')
-    rem_reqs = headers.get('x-ratelimit-remaining-requests', '?')
-    
-    completion = raw_response.parse()
-    text = (completion.choices[0].message.content or "").strip()
-    if not text:
-        text = "Model nie zwrócił treści odpowiedzi."
-    
-    info_str = f"API Limit: {rem_reqs} req | {rem_tokens} tok"
+    text, info_str = _call_llm_with_fallback(messages)
     print(f"[LLM] Odpowiedz modelu {_LLM_MODEL} (z kontekstem audio) w {time.perf_counter() - start:.1f}s.")
     return text, info_str
 

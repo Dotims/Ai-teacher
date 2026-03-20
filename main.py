@@ -30,6 +30,7 @@ from ai_service import (
     analyze_transcript_only,
     get_runtime_models,
     preload_transcriber,
+    set_llm_model,
     transcribe_audio
 )
 
@@ -346,6 +347,7 @@ def main() -> None:
 
     keyboard.on_press(lambda e: workflow.on_trigger_press() if _is_right_ctrl(e) else None, suppress=False)
     window.voice_toggle_clicked.connect(workflow.toggle_recording)
+    window.model_changed.connect(set_llm_model)
 
     # --------------- Show window on start ---------------
     window.show()
